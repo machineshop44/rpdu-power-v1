@@ -1,0 +1,3414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>rPDU Power v1</title>
+  <style>
+:root {
+  --bg: #f2f4f7;
+  --paper: #ffffff;
+  --ink: #1a1a1a;
+  --muted: #5c6570;
+  --line: #d5dae2;
+  --navy: #012169;
+  --red: #e31837;
+  --yellow: #e31837;
+  --ink-2: #012169;
+  --green: #0b6b3a;
+  --green-bg: #e7f6ec;
+  --bad-bg: #fdecef;
+  --shadow: 0 1px 0 rgba(1, 33, 105, 0.04), 0 16px 40px rgba(1, 33, 105, 0.08);
+  color: var(--ink);
+  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 22px;
+  background: var(--navy);
+  color: #ffffff;
+}
+.brand { display: flex; gap: 12px; align-items: center; }
+.mark { width: 36px; height: 36px; display: block; }
+.brand-name { font-size: 20px; font-weight: 750; letter-spacing: -0.02em; }
+.pill {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #ffffff;
+  font-size: 13px;
+  vertical-align: 2px;
+}
+.brand-sub, .status, .save-state { color: #d5dbe8; font-size: 13px; }
+.top-side { display: grid; justify-items: end; gap: 8px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.tabs a {
+  color: #ffffff;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  min-height: 40px;
+}
+.tabs a[aria-current="page"] { background: var(--red); color: #ffffff; }
+
+main { width: min(1120px, calc(100% - 28px)); margin: 22px auto 40px; }
+h1 { font-size: 32px; line-height: 1.1; margin: 0 0 8px; letter-spacing: -0.03em; }
+h2 { font-size: 18px; margin: 0 0 10px; }
+.lead { margin: 0 0 16px; color: var(--muted); max-width: 68ch; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.8fr); gap: 16px; align-items: start; }
+.panel, .group, .item, .paste {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+.panel, .paste { padding: 18px; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.span-2 { grid-column: span 2; }
+label.field { display: grid; gap: 6px; font-size: 13px; font-weight: 700; }
+input, select, textarea {
+  width: 100%;
+  border: 1px solid #c5cad3;
+  background: white;
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-height: 44px;
+}
+textarea { min-height: 160px; resize: vertical; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip, .btn {
+  border-radius: 999px;
+  min-height: 40px;
+  padding: 8px 14px;
+  font-weight: 750;
+  border: 1px solid #c5cad3;
+  background: white;
+}
+.chip[aria-pressed="true"] { background: var(--navy); color: #ffffff; border-color: var(--navy); }
+.btn-primary { background: var(--red); color: #ffffff; border-color: var(--red); }
+.btn-ghost { background: transparent; }
+.btn-danger { background: var(--red); color: white; border-color: var(--red); }
+.btn-small { min-height: 34px; padding: 4px 10px; font-size: 13px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+
+.readout {
+  position: sticky;
+  top: 92px;
+  background: var(--navy);
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 18px;
+}
+.kicker { color: #ffd0d6; font-size: 13px; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; }
+.figure { font-size: 46px; line-height: 0.95; font-variant-numeric: tabular-nums; letter-spacing: -0.04em; margin: 8px 0; }
+.unit { color: #ffd0d6; font-size: 20px; margin-left: 6px; }
+.figure-sub { font-size: 22px; margin: 0 0 8px; font-variant-numeric: tabular-nums; }
+.formula {
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  background: rgba(0, 0, 0, 0.28);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 8px 0;
+}
+.continuous { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.banner { border-radius: 12px; padding: 10px 12px; margin: 0 0 12px; }
+.banner.ok { background: var(--green-bg); color: var(--green); }
+.banner.bad { background: var(--bad-bg); color: var(--red); }
+.known { min-height: 1.2em; color: var(--muted); font-size: 14px; }
+.photo-box { border: 1.5px dashed #c5cad3; border-radius: 12px; padding: 12px; background: #f7f8fa; }
+.preview { display: block; max-height: 180px; max-width: 100%; margin-top: 8px; border-radius: 8px; }
+.viewfinder { display: block; width: 100%; max-height: 280px; margin-top: 8px; border-radius: 8px; background: var(--navy); object-fit: contain; }
+.viewfinder[hidden] { display: none; }
+.gauge { margin-top: 10px; }
+.gauge-track { position: relative; height: 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.18); overflow: hidden; }
+.item .gauge-track, .panel .gauge-track { background: #e6e9ef; }
+.readout .gauge-track { background: rgba(255, 255, 255, 0.18); }
+.gauge-safe { position: absolute; left: 0; top: 0; bottom: 0; width: 80%; background: #1f8a4c; }
+.gauge-over { position: absolute; left: 80%; top: 0; bottom: 0; right: 0; background: var(--red); }
+.gauge-mark { position: absolute; left: 80%; top: -3px; bottom: -3px; width: 2px; background: #ffffff; }
+.item .gauge-mark { background: var(--navy); }
+.gauge-copy { margin: 6px 0 0; color: inherit; font-size: 13px; }
+.item .gauge-copy { color: var(--muted); }
+.fold { margin-top: 14px; }
+.fold summary { cursor: pointer; font-weight: 750; }
+.checks { margin: 8px 0 0; padding-left: 18px; }
+.checks li { margin: 6px 0; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.search { flex: 1 1 220px; min-width: 180px; }
+.group { margin: 12px 0; padding: 12px; }
+.group-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 8px; }
+.group-title { font-size: 18px; font-weight: 750; }
+.item { margin: 8px 0; overflow: hidden; }
+.library-row { display: flex; align-items: stretch; }
+.library-row .item-toggle { flex: 1; }
+.library-row .btn { align-self: center; margin-right: 12px; }
+.item-toggle {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+.item-name { font-weight: 750; font-size: 16px; }
+.metric { text-align: right; font-variant-numeric: tabular-nums; }
+.metric strong { display: block; font-size: 18px; }
+.detail { padding: 0 14px 14px; border-top: 1px solid var(--line); }
+.meta { color: var(--muted); font-size: 13px; }
+.table-wrap { overflow-x: auto; }
+table.data { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.data th, table.data td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.data th { font-size: 12px; color: var(--muted); }
+tr.single td:first-child { box-shadow: inset 3px 0 0 var(--red); }
+.drawing { width: 100%; max-height: 360px; object-fit: contain; background: #f4efe6; border-radius: 12px; margin-bottom: 8px; }
+.matches { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.matches button { text-align: left; }
+.empty { padding: 18px; color: var(--muted); }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
+.stat { background: white; border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; font-size: 13px; font-weight: 700; }
+footer {
+  width: min(1120px, calc(100% - 28px));
+  margin: 0 auto 28px;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .readout { position: static; order: -1; }
+  .topbar { flex-wrap: wrap; }
+  .top-side, .tabs { justify-content: flex-start; justify-items: start; }
+  .fields, .span-2 { grid-template-columns: 1fr; grid-column: auto; }
+  .figure { font-size: 38px; }
+}
+@media print {
+  .topbar, footer, .toolbar, .actions, .paste, .fold { display: none !important; }
+  body, .readout { background: white; color: black; }
+  .panel, .group, .item { box-shadow: none; }
+}
+
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="#e31837"/>
+        <path d="M18 4 8 18h7l-2 10 11-16h-8l2-8z" fill="#ffffff"/>
+      </svg>
+      <div>
+        <div class="brand-name">rPDU Power <span class="pill" data-version-label>v1</span></div>
+        <div class="brand-sub">Field power findings</div>
+      </div>
+    </div>
+    <div class="top-side">
+      <nav class="tabs" aria-label="Sections">
+        <a href="#cabinet" data-page="cabinet">Cabinet</a>
+        <a href="#convert" data-page="convert">Convert</a>
+        <a href="#library" data-page="library">Library</a>
+        <a href="#import" data-page="import">Import</a>
+        <a href="#powerdown" data-page="powerdown">Powerdown</a>
+      </nav>
+      <div id="status" class="status"></div>
+      <div id="save-state" class="save-state"></div>
+    </div>
+  </header>
+  <main id="app">Loading rPDU Power…</main>
+  <footer>
+    <span><span data-display>rPDU Power v1</span> · <span data-semver>1.3.0</span></span>
+    <span>Stored in this browser</span>
+  </footer>
+  <script>
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else root.RPDU_VERSION = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  const APP_NAME = "rPDU Power";
+  const VERSION_LABEL = "v1";
+  const SEMVER = "1.3.0";
+  return {
+    APP_NAME: APP_NAME,
+    VERSION_LABEL: VERSION_LABEL,
+    SEMVER: SEMVER,
+    DISPLAY_NAME: APP_NAME + " " + VERSION_LABEL,
+  };
+});
+
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else root.RpduEngine = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  const PHASE_FACTOR = 1.73;
+  const PHASE_TEXT = "1.73";
+  const WATTS_PER_HP = 745.6;
+  const CONTINUOUS = 0.8;
+
+  function roundTo(value, digits) {
+    return Number(value.toFixed(digits));
+  }
+
+  function formatQty(value, digits) {
+    if (!Number.isFinite(value)) return "—";
+    const places = digits === undefined ? 3 : digits;
+    return Number(value.toFixed(places)).toLocaleString("en-US", {
+      maximumFractionDigits: places,
+    });
+  }
+
+  function formatPlain(value) {
+    if (!Number.isFinite(value)) return "—";
+    const rounded = Number(value.toFixed(4));
+    return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+  }
+
+  function formatPf(value) {
+    if (Math.abs(value - Math.round(value)) < 1e-9) return String(Math.round(value));
+    return value.toFixed(2);
+  }
+
+  function supplyLabel(supply) {
+    if (supply === "dc") return "DC";
+    if (supply === "single") return "Single-phase";
+    return "Three-phase";
+  }
+
+  function ruleText(supply) {
+    if (supply === "dc") return ["Kilowatts = volts × amps / 1000"];
+    if (supply === "single") {
+      return [
+        "Kilowatts = volts × amps × power factor / 1000",
+        "kVA = volts × amps / 1000",
+      ];
+    }
+    return [
+      "Kilowatts = volts × amps × power factor × " + PHASE_TEXT + " / 1000",
+      "kVA = volts × amps × " + PHASE_TEXT + " / 1000",
+    ];
+  }
+
+  function findingError(input) {
+    if (!input) return "Enter volts and breaker amps.";
+    if (!(input.volts > 0) || input.volts > 1000) return "Volts need to be greater than 0 and at most 1000.";
+    if (!(input.amps > 0) || input.amps > 5000) return "Breaker amps need to be greater than 0.";
+    if (input.supply !== "dc" && (!(input.powerFactor > 0) || input.powerFactor > 1)) {
+      return "Power factor needs to be above 0 and at most 1.";
+    }
+    if (!Number.isInteger(input.breakerCount) || input.breakerCount < 1 || input.breakerCount > 48) {
+      return "Matching breakers needs to be a whole number from 1 to 48.";
+    }
+    if (["dc", "single", "three"].indexOf(input.supply) === -1) {
+      return "Choose DC, single-phase, or three-phase.";
+    }
+    return "";
+  }
+
+  function productParts(volts, amps, extras) {
+    const parts = [formatPlain(volts), formatPlain(amps)];
+    for (let i = 0; i < extras.length; i++) parts.push(extras[i]);
+    return parts.join(" × ");
+  }
+
+  function computeFinding(input) {
+    const error = findingError(input);
+    if (error) throw new Error(error);
+    const supply = input.supply;
+    const volts = input.volts;
+    const amps = input.amps;
+    const count = input.breakerCount;
+    const powerFactorUsed = supply === "dc" ? 1 : input.powerFactor;
+    const phase = supply === "three" ? PHASE_FACTOR : 1;
+    const extras = [];
+    if (supply !== "dc" && Math.abs(powerFactorUsed - 1) > 1e-9) extras.push(formatPf(powerFactorUsed));
+    if (supply === "three") extras.push(PHASE_TEXT);
+    const kvaExtras = supply === "three" ? [PHASE_TEXT] : [];
+
+    const real = volts * amps * powerFactorUsed * phase * count;
+    const watts = roundTo(real, 2);
+    const kilowatts = roundTo(real / 1000, 3);
+    const apparent = volts * amps * phase * count;
+    const kva = supply === "dc" ? null : roundTo(apparent / 1000, 3);
+    const horsepower = roundTo(real / WATTS_PER_HP, 3);
+    const continuousReal = volts * amps * CONTINUOUS * powerFactorUsed * phase * count;
+    const continuousAmps = roundTo(amps * CONTINUOUS * count, 2);
+    const continuousKilowatts = roundTo(continuousReal / 1000, 3);
+    const continuousKva = supply === "dc" ? null : roundTo((volts * amps * CONTINUOUS * phase * count) / 1000, 3);
+
+    const core = productParts(volts, amps, extras);
+    const countSuffix = count === 1 ? "" : " × " + count;
+    const formulaWatts = "P = " + core + countSuffix + " = " + formatQty(watts, 2) + " W";
+    const formulaKw =
+      "kW = (" + core + ") / 1000" + countSuffix + " = " + formatQty(kilowatts, 3);
+    let formulaKva = null;
+    if (kva !== null) {
+      const kvaCore = productParts(volts, amps, kvaExtras);
+      formulaKva = "kVA = (" + kvaCore + ") / 1000" + countSuffix + " = " + formatQty(kva, 3);
+    }
+
+    let resistanceOhms = null;
+    let formulaResistance = null;
+    if ((supply === "dc" || supply === "single") && count === 1 && Math.abs(powerFactorUsed - 1) < 1e-9) {
+      const simpleWatts = roundTo(volts * amps, 2);
+      resistanceOhms = roundTo(volts / amps, 3);
+      const fromPower = roundTo(simpleWatts / (amps * amps), 3);
+      formulaResistance =
+        "R = E / I = " + formatPlain(volts) + " / " + formatPlain(amps) + " = " + formatQty(resistanceOhms, 3) + " ohms\n" +
+        "R = P / I² = " + formatQty(simpleWatts, 2) + " / " + formatQty(amps * amps, 2) + " = " + formatQty(fromPower, 3) + " ohms";
+    }
+
+    const perBreaker = formatPlain(amps) + " × 0.80 = " + formatQty(roundTo(amps * CONTINUOUS, 2), 2) + " A";
+    const formulaContinuous = count === 1
+      ? "Continuous amps = " + perBreaker
+      : "Continuous amps = (" + perBreaker + ") × " + count + " = " + formatQty(continuousAmps, 2) + " A";
+
+    return {
+      watts: watts,
+      kilowatts: kilowatts,
+      kva: kva,
+      resistanceOhms: resistanceOhms,
+      horsepower: horsepower,
+      continuousAmps: continuousAmps,
+      continuousKilowatts: continuousKilowatts,
+      continuousKva: continuousKva,
+      powerFactorUsed: powerFactorUsed,
+      formulaWatts: formulaWatts,
+      formulaKw: formulaKw,
+      formulaKva: formulaKva,
+      formulaResistance: formulaResistance,
+      formulaContinuous: formulaContinuous,
+    };
+  }
+
+  function solveOhm(known) {
+    const keys = ["E", "I", "R", "P"].filter(function (key) {
+      return known && known[key] !== undefined && known[key] !== null && known[key] !== "" && Number(known[key]) > 0;
+    });
+    if (keys.length !== 2) return null;
+    const map = {};
+    keys.forEach(function (key) { map[key] = Number(known[key]); });
+    const has = function (key) { return Object.prototype.hasOwnProperty.call(map, key); };
+    let E;
+    let I;
+    let R;
+    let P;
+    if (has("E") && has("I")) {
+      E = map.E; I = map.I; P = E * I; R = E / I;
+    } else if (has("E") && has("R")) {
+      E = map.E; R = map.R; I = E / R; P = (E * E) / R;
+    } else if (has("E") && has("P")) {
+      E = map.E; P = map.P; I = P / E; R = (E * E) / P;
+    } else if (has("I") && has("R")) {
+      I = map.I; R = map.R; E = I * R; P = I * I * R;
+    } else if (has("I") && has("P")) {
+      I = map.I; P = map.P; E = P / I; R = P / (I * I);
+    } else if (has("R") && has("P")) {
+      R = map.R; P = map.P; I = Math.sqrt(P / R); E = Math.sqrt(P * R);
+    } else return null;
+    return { E: roundTo(E, 4), I: roundTo(I, 4), R: roundTo(R, 4), P: roundTo(P, 4) };
+  }
+
+  const GUIDE_CHECKS = [
+    {
+      id: "watts",
+      title: "Watts and ohms",
+      inputs: "120 V, 5 A",
+      input: { supply: "single", volts: 120, amps: 5, powerFactor: 1, breakerCount: 1 },
+      expect: { watts: 600, resistanceOhms: 24 },
+    },
+    {
+      id: "dc",
+      title: "Direct-current kilowatts",
+      inputs: "120 V DC, 40 A",
+      input: { supply: "dc", volts: 120, amps: 40, powerFactor: 1, breakerCount: 1 },
+      expect: { watts: 4800, kilowatts: 4.8, kva: null },
+    },
+    {
+      id: "single-kw",
+      title: "Single-phase kilowatts",
+      inputs: "115 V, 20 A, power factor 0.86",
+      input: { supply: "single", volts: 115, amps: 20, powerFactor: 0.86, breakerCount: 1 },
+      expect: { watts: 1978, kilowatts: 1.978, kva: 2.3 },
+    },
+    {
+      id: "three-kw",
+      title: "Three-phase kilowatts",
+      inputs: "460 V, 52 A, power factor 0.80",
+      input: { supply: "three", volts: 460, amps: 52, powerFactor: 0.8, breakerCount: 1 },
+      expect: { kilowatts: 33.105, kva: 41.382, continuousAmps: 41.6, continuousKilowatts: 26.484 },
+    },
+    {
+      id: "single-kva",
+      title: "Single-phase kVA",
+      inputs: "240 V, 41.66 A",
+      input: { supply: "single", volts: 240, amps: 41.66, powerFactor: 1, breakerCount: 1 },
+      expect: { kva: 9.998 },
+    },
+    {
+      id: "three-kva",
+      title: "Three-phase kVA",
+      inputs: "460 V, 52 A",
+      input: { supply: "three", volts: 460, amps: 52, powerFactor: 1, breakerCount: 1 },
+      expect: { kilowatts: 41.382, kva: 41.382 },
+    },
+  ];
+
+  function emptyState() {
+    return { assets: [], links: [], readings: [], rooms: [] };
+  }
+
+  function makeId() {
+    return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  }
+
+  function cleanName(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function rpduNameFor(cabinet, feed) {
+    const name = cleanName(cabinet);
+    if (!name) return "";
+    return name + "-" + (String(feed || "A").toUpperCase() === "B" ? "B" : "A");
+  }
+
+  function keyOf(value) {
+    return cleanName(value).toLowerCase();
+  }
+
+  function kindFromType(type) {
+    const t = String(type || "").toLowerCase().replace(/\s+/g, " ").trim();
+    if (!t) return "other";
+    if (t.includes("power strip") || t.includes("powerstrip") || t === "rpdu" || t.includes("rack pdu") || t.includes("r-pdu")) {
+      return "rpdu";
+    }
+    if (t === "pdu" || t.includes("floor pdu") || t.includes("remote power panel") || t === "rpp") return "pdu";
+    if (t.includes("ups") || t.includes("static switch") || t.includes("utility feed") || t === "utility") return "power";
+    return "device";
+  }
+
+  function kindLabel(kind) {
+    if (kind === "rpdu") return "rPDU";
+    if (kind === "pdu") return "Room PDU";
+    if (kind === "power") return "Power equipment";
+    if (kind === "device") return "Device";
+    return "Other";
+  }
+
+  function parseDelimited(text, delimiter) {
+    const rows = [];
+    let row = [];
+    let cell = "";
+    let inQuotes = false;
+    const source = String(text || "").replace(/^\uFEFF/, "");
+    for (let i = 0; i < source.length; i++) {
+      const ch = source[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (source[i + 1] === '"') {
+            cell += '"';
+            i++;
+          } else inQuotes = false;
+        } else cell += ch;
+      } else if (ch === '"') inQuotes = true;
+      else if (ch === delimiter) {
+        row.push(cell);
+        cell = "";
+      } else if (ch === "\n") {
+        row.push(cell);
+        rows.push(row);
+        row = [];
+        cell = "";
+      } else if (ch !== "\r") cell += ch;
+    }
+    if (cell.length || row.length) {
+      row.push(cell);
+      rows.push(row);
+    }
+    return rows.filter(function (cells) {
+      return cells.some(function (value) { return String(value).trim() !== ""; });
+    });
+  }
+
+  function detectDelimiter(text) {
+    const line = String(text || "").split(/\r?\n/).find(function (item) { return item.trim(); }) || "";
+    const tabs = (line.match(/\t/g) || []).length;
+    const commas = (line.match(/,/g) || []).length;
+    return tabs > commas ? "\t" : ",";
+  }
+
+  function normalizeHeader(value) {
+    return String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+  }
+
+  const HEADER_MAP = {
+    "consumer asset type": "consumerType",
+    "consumer material name": "consumerMaterial",
+    "consumer asset name": "consumerName",
+    "consumer asset number": "consumerNumber",
+    "consumer operational status": "consumerStatus",
+    "consumer plug position": "plugPosition",
+    "supplier asset type": "supplierType",
+    "supplier material name": "supplierMaterial",
+    "supplier asset name": "supplierName",
+    "supplier asset number": "supplierNumber",
+    "supplier operational status": "supplierStatus",
+    "supplier outlet": "supplierOutlet",
+    "connection name": "connectionName",
+    "connection max kva": "maxKva",
+    "connection max kw": "maxKw",
+    breaker: "breaker",
+    "breaker name": "breaker",
+    "breaker position": "breaker",
+    panel: "panel",
+    "pdu panel": "panel",
+    cabinet: "cabinet",
+    "cabinet name": "cabinet",
+    "consumer cabinet": "cabinet",
+    "breaker 1": "breaker1",
+    "breaker 1 amps": "breaker1",
+    "breaker1": "breaker1",
+    "amps 1": "breaker1",
+    "breaker 2": "breaker2",
+    "breaker 2 amps": "breaker2",
+    "breaker2": "breaker2",
+    "amps 2": "breaker2",
+    "breaker 3": "breaker3",
+    "breaker 3 amps": "breaker3",
+    "breaker3": "breaker3",
+    "amps 3": "breaker3",
+    volts: "volts",
+    voltage: "volts",
+    site: "site",
+    "site id": "site",
+    "site name": "site",
+    room: "room",
+    "room name": "room",
+    location: "room",
+    "data hall": "room",
+    "asset name": "assetName",
+    "asset number": "assetNumber",
+    "asset type": "assetType",
+    "material name": "materialName",
+    "operational status": "operationalStatus",
+    "power strip asset name": "assetName",
+    "power strip name": "assetName",
+    "pdu asset name": "assetName",
+    "pdu name": "assetName",
+  };
+
+  function mapHeaders(cells) {
+    return cells.map(function (cell) {
+      return HEADER_MAP[normalizeHeader(cell)] || "";
+    });
+  }
+
+  function findHeader(rows) {
+    for (let i = 0; i < rows.length && i < 15; i++) {
+      const mapped = mapHeaders(rows[i]);
+      const joined = mapped.filter(Boolean);
+      if (joined.indexOf("consumerName") !== -1 || joined.indexOf("supplierName") !== -1 || joined.indexOf("assetName") !== -1 || (joined.indexOf("cabinet") !== -1 && (joined.indexOf("breaker1") !== -1 || joined.indexOf("breaker2") !== -1 || joined.indexOf("breaker3") !== -1))) {
+        return { index: i, mapped: mapped };
+      }
+    }
+    return null;
+  }
+
+  function sheetKind(mapped) {
+    if (mapped.indexOf("consumerName") !== -1 && mapped.indexOf("supplierName") !== -1) return "links";
+    if (mapped.indexOf("cabinet") !== -1 && (mapped.indexOf("breaker1") !== -1 || mapped.indexOf("breaker2") !== -1 || mapped.indexOf("breaker3") !== -1)) return "cabinets";
+    if (mapped.indexOf("assetName") !== -1) return "assets";
+    return "unknown";
+  }
+
+  const FIELD_VOLTS = [120, 208];
+
+  function computeBreakers(volts, ampList, powerFactor) {
+    const pf = powerFactor === undefined || powerFactor === null ? 1 : powerFactor;
+    const breakers = [];
+    for (let i = 0; i < ampList.length; i++) {
+      const amps = Number(ampList[i]);
+      if (!(amps > 0)) continue;
+      const found = computeFinding({ supply: "single", volts: volts, amps: amps, powerFactor: pf, breakerCount: 1 });
+      breakers.push({
+        n: i + 1,
+        amps: amps,
+        watts: found.watts,
+        kilowatts: found.kilowatts,
+        kva: found.kva,
+        continuousWatts: found.continuousWatts === undefined ? roundTo(found.watts * CONTINUOUS, 2) : found.continuousWatts,
+        continuousKilowatts: found.continuousKilowatts,
+        continuousKva: found.continuousKva,
+        formulaKw: found.formulaKw,
+      });
+    }
+    let watts = 0;
+    let kilowatts = 0;
+    let kva = 0;
+    let continuousWatts = 0;
+    let continuousKilowatts = 0;
+    let continuousKva = 0;
+    breakers.forEach(function (breaker) {
+      watts += breaker.watts;
+      kilowatts += breaker.kilowatts;
+      kva += breaker.kva;
+      continuousWatts += breaker.continuousWatts;
+      continuousKilowatts += breaker.continuousKilowatts;
+      continuousKva += breaker.continuousKva;
+    });
+    const totalKw = roundTo(kilowatts, 3);
+    const limitKw = roundTo(continuousKilowatts, 3);
+    return {
+      volts: volts,
+      breakers: breakers,
+      watts: roundTo(watts, 2),
+      kilowatts: totalKw,
+      kva: roundTo(kva, 3),
+      kilowattHours: totalKw,
+      continuousWatts: roundTo(continuousWatts, 2),
+      continuousKilowatts: limitKw,
+      continuousKva: roundTo(continuousKva, 3),
+      limitKilowattHours: limitKw,
+      overKilowatts: roundTo(totalKw - limitKw, 3),
+    };
+  }
+
+  const DIGIT_FONT = {
+    "0": ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+    "1": ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+    "2": ["01110", "10001", "00001", "00010", "00100", "01000", "11111"],
+    "3": ["01110", "10001", "00001", "00110", "00001", "10001", "01110"],
+    "4": ["00010", "00110", "01010", "10010", "11111", "00010", "00010"],
+    "5": ["11111", "10000", "11110", "00001", "00001", "10001", "01110"],
+    "6": ["00110", "01000", "10000", "11110", "10001", "10001", "01110"],
+    "7": ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
+    "8": ["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
+    "9": ["01110", "10001", "10001", "01111", "00001", "00010", "01100"],
+  };
+
+  function paintGlyph(ch, scale) {
+    const rows = DIGIT_FONT[ch];
+    const w = 5 * scale;
+    const h = 7 * scale;
+    const data = new Uint8Array(w * h);
+    for (let y = 0; y < 7; y++) {
+      for (let x = 0; x < 5; x++) {
+        if (rows[y].charAt(x) !== "1") continue;
+        for (let dy = 0; dy < scale; dy++) {
+          for (let dx = 0; dx < scale; dx++) data[(y * scale + dy) * w + (x * scale + dx)] = 1;
+        }
+      }
+    }
+    return { ch: ch, w: w, h: h, data: data };
+  }
+
+  function builtinDigitTemplates() {
+    return "0123456789".split("").map(function (ch) { return paintGlyph(ch, 4); });
+  }
+
+  function ampSampleImage(labels) {
+    const scale = 4;
+    const cellW = 5 * scale;
+    const cellH = 7 * scale;
+    const digitGap = scale;
+    const wordGap = scale * 6;
+    const pad = 16;
+    const words = labels.map(function (label) { return String(label); });
+    let width = pad * 2;
+    words.forEach(function (word, index) {
+      width += word.length * cellW + Math.max(0, word.length - 1) * digitGap;
+      if (index < words.length - 1) width += wordGap;
+    });
+    const height = pad * 2 + cellH;
+    const data = new Uint8ClampedArray(width * height * 4);
+    for (let i = 0; i < width * height; i++) {
+      data[i * 4] = 255;
+      data[i * 4 + 1] = 255;
+      data[i * 4 + 2] = 255;
+      data[i * 4 + 3] = 255;
+    }
+    let cursor = pad;
+    words.forEach(function (word, wordIndex) {
+      for (let d = 0; d < word.length; d++) {
+        const glyph = paintGlyph(word.charAt(d), scale);
+        for (let y = 0; y < glyph.h; y++) {
+          for (let x = 0; x < glyph.w; x++) {
+            if (!glyph.data[y * glyph.w + x]) continue;
+            const pixel = ((pad + y) * width + (cursor + x)) * 4;
+            data[pixel] = 0;
+            data[pixel + 1] = 0;
+            data[pixel + 2] = 0;
+          }
+        }
+        cursor += cellW;
+        if (d < word.length - 1) cursor += digitGap;
+      }
+      if (wordIndex < words.length - 1) cursor += wordGap;
+    });
+    return { width: width, height: height, data: data };
+  }
+
+  function ampsFromText(text) {
+    const found = [];
+    const source = String(text || "");
+    const pattern = /(?:^|[^\d])(\d{1,3})(?:\s*[aA])?(?=$|[^\d])/g;
+    let match = pattern.exec(source);
+    while (match) {
+      const value = Number(match[1]);
+      if (value >= 5 && value <= 100 && value !== 120 && value !== 208) found.push(value);
+      if (found.length === 3) break;
+      match = pattern.exec(source);
+    }
+    return found;
+  }
+
+  function readAmps(image, templates) {
+    const empty = { amps: [], confidence: 0 };
+    if (!image || !(image.width > 0) || !(image.height > 0) || !image.data) return empty;
+    const width = image.width;
+    const height = image.height;
+    const pixels = image.data;
+    const channels = pixels.length >= width * height * 4 ? 4 : 1;
+    const gray = new Uint8Array(width * height);
+    for (let i = 0; i < gray.length; i++) {
+      if (channels === 4) {
+        gray[i] = Math.round(pixels[i * 4] * 0.3 + pixels[i * 4 + 1] * 0.59 + pixels[i * 4 + 2] * 0.11);
+      } else gray[i] = pixels[i];
+    }
+    const threshold = otsuThreshold(gray);
+    let dark = 0;
+    for (let i = 0; i < gray.length; i++) if (gray[i] < threshold) dark++;
+    const inkIsDark = dark <= gray.length * 0.55;
+    const ink = new Uint8Array(gray.length);
+    for (let i = 0; i < gray.length; i++) ink[i] = (inkIsDark ? gray[i] < threshold : gray[i] > threshold) ? 1 : 0;
+    const boxes = inkComponents(ink, width, height);
+    const set = normalizedTemplates(templates && templates.length ? templates : builtinDigitTemplates());
+    const glyphs = [];
+    boxes.forEach(function (box) {
+      if (box.w < 2 || box.h < 8) return;
+      if (box.h / box.w > 6 || box.w / box.h > 3) return;
+      const sample = resizeBinary(cropBinary(ink, width, box), box.w, box.h, 20, 28);
+      let bestChar = "";
+      let bestScore = 0;
+      let second = 0;
+      const byChar = {};
+      set.forEach(function (template) {
+        const score = glyphScore(sample, template.data);
+        if (byChar[template.ch] === undefined || score > byChar[template.ch]) byChar[template.ch] = score;
+      });
+      Object.keys(byChar).forEach(function (ch) {
+        const score = byChar[ch];
+        if (score > bestScore) {
+          second = bestScore;
+          bestScore = score;
+          bestChar = ch;
+        } else if (score > second) second = score;
+      });
+      if (!bestChar || bestScore < 0.5 || bestScore - second < 0.04) return;
+      glyphs.push({ x: box.x, y: box.y, w: box.w, h: box.h, ch: bestChar, score: bestScore });
+    });
+    const numbers = groupAmpNumbers(glyphs);
+    const amps = [];
+    let scoreSum = 0;
+    let scoreCount = 0;
+    numbers.forEach(function (number) {
+      if (amps.length >= 3) return;
+      const value = Number(number.digits.map(function (digit) { return digit.ch; }).join(""));
+      if (!(value >= 5 && value <= 100) || value === 120 || value === 208) return;
+      amps.push(value);
+      number.digits.forEach(function (digit) {
+        scoreSum += digit.score;
+        scoreCount++;
+      });
+    });
+    return { amps: amps, confidence: scoreCount ? roundTo(scoreSum / scoreCount, 3) : 0 };
+  }
+
+  function normalizedTemplates(templates) {
+    return templates.map(function (template) {
+      const box = contentBox(template.data, template.w, template.h);
+      if (!box) return { ch: template.ch, w: 20, h: 28, data: new Uint8Array(20 * 28) };
+      const cropped = cropBinary(template.data, template.w, box);
+      return { ch: template.ch, w: 20, h: 28, data: resizeBinary(cropped, box.w, box.h, 20, 28) };
+    });
+  }
+
+  function contentBox(data, w, h) {
+    let minX = w;
+    let minY = h;
+    let maxX = 0;
+    let maxY = 0;
+    let any = false;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (!data[y * w + x]) continue;
+        any = true;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+    if (!any) return null;
+    return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+  }
+
+  function otsuThreshold(gray) {
+    const hist = new Array(256).fill(0);
+    for (let i = 0; i < gray.length; i++) hist[gray[i]]++;
+    let sum = 0;
+    for (let i = 0; i < 256; i++) sum += i * hist[i];
+    let sumB = 0;
+    let weightB = 0;
+    let max = 0;
+    let threshold = 127;
+    for (let t = 0; t < 256; t++) {
+      weightB += hist[t];
+      if (!weightB) continue;
+      const weightF = gray.length - weightB;
+      if (!weightF) break;
+      sumB += t * hist[t];
+      const meanB = sumB / weightB;
+      const meanF = (sum - sumB) / weightF;
+      const between = weightB * weightF * (meanB - meanF) * (meanB - meanF);
+      if (between >= max) {
+        max = between;
+        threshold = t;
+      }
+    }
+    return threshold;
+  }
+
+  function inkComponents(ink, width, height) {
+    const seen = new Uint8Array(ink.length);
+    const boxes = [];
+    const stack = [];
+    for (let start = 0; start < ink.length; start++) {
+      if (!ink[start] || seen[start]) continue;
+      let minX = width;
+      let minY = height;
+      let maxX = 0;
+      let maxY = 0;
+      let count = 0;
+      stack.push(start);
+      seen[start] = 1;
+      while (stack.length) {
+        const index = stack.pop();
+        const x = index % width;
+        const y = (index - x) / width;
+        count++;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+        const x0 = x > 0 ? x - 1 : x;
+        const x1 = x + 1 < width ? x + 1 : x;
+        const y0 = y > 0 ? y - 1 : y;
+        const y1 = y + 1 < height ? y + 1 : y;
+        for (let ny = y0; ny <= y1; ny++) {
+          for (let nx = x0; nx <= x1; nx++) {
+            const next = ny * width + nx;
+            if (ink[next] && !seen[next]) { seen[next] = 1; stack.push(next); }
+          }
+        }
+      }
+      if (count >= 12 && count < ink.length * 0.25) {
+        boxes.push({ x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 });
+      }
+    }
+    return boxes;
+  }
+
+  function cropBinary(ink, width, box) {
+    const data = new Uint8Array(box.w * box.h);
+    for (let y = 0; y < box.h; y++) {
+      for (let x = 0; x < box.w; x++) data[y * box.w + x] = ink[(box.y + y) * width + box.x + x];
+    }
+    return data;
+  }
+
+  function resizeBinary(src, sw, sh, dw, dh) {
+    const out = new Uint8Array(dw * dh);
+    for (let y = 0; y < dh; y++) {
+      const y0 = Math.floor(y * sh / dh);
+      const y1 = Math.max(y0 + 1, Math.floor((y + 1) * sh / dh));
+      for (let x = 0; x < dw; x++) {
+        const x0 = Math.floor(x * sw / dw);
+        const x1 = Math.max(x0 + 1, Math.floor((x + 1) * sw / dw));
+        let hits = 0;
+        let total = 0;
+        for (let yy = y0; yy < y1 && yy < sh; yy++) {
+          for (let xx = x0; xx < x1 && xx < sw; xx++) {
+            total++;
+            hits += src[yy * sw + xx];
+          }
+        }
+        out[y * dw + x] = total && hits / total >= 0.35 ? 1 : 0;
+      }
+    }
+    return out;
+  }
+
+  function glyphScore(sample, template) {
+    let both = 0;
+    let either = 0;
+    const length = Math.min(sample.length, template.length);
+    for (let i = 0; i < length; i++) {
+      if (sample[i] || template[i]) either++;
+      if (sample[i] && template[i]) both++;
+    }
+    return either ? both / either : 0;
+  }
+
+  function groupAmpNumbers(glyphs) {
+    const lines = [];
+    glyphs.slice().sort(function (a, b) { return a.y - b.y || a.x - b.x; }).forEach(function (glyph) {
+      let line = null;
+      for (let i = 0; i < lines.length; i++) {
+        const overlap = Math.min(lines[i].bottom, glyph.y + glyph.h) - Math.max(lines[i].top, glyph.y);
+        if (overlap > 0.4 * Math.min(lines[i].bottom - lines[i].top, glyph.h)) line = lines[i];
+      }
+      if (!line) lines.push({ top: glyph.y, bottom: glyph.y + glyph.h, glyphs: [glyph] });
+      else {
+        line.top = Math.min(line.top, glyph.y);
+        line.bottom = Math.max(line.bottom, glyph.y + glyph.h);
+        line.glyphs.push(glyph);
+      }
+    });
+    const numbers = [];
+    lines.forEach(function (line) {
+      const ordered = line.glyphs.slice().sort(function (a, b) { return a.x - b.x; });
+      let current = null;
+      ordered.forEach(function (glyph) {
+        if (!current) {
+          current = { digits: [glyph], right: glyph.x + glyph.w };
+          return;
+        }
+        const previous = current.digits[current.digits.length - 1];
+        const gap = glyph.x - current.right;
+        const limit = Math.max(previous.w, glyph.w) * 0.7;
+        if (gap <= limit && current.digits.length < 3) {
+          current.digits.push(glyph);
+          current.right = glyph.x + glyph.w;
+        } else {
+          numbers.push(current);
+          current = { digits: [glyph], right: glyph.x + glyph.w };
+        }
+      });
+      if (current) numbers.push(current);
+    });
+    return numbers;
+  }
+
+  function thresholdFromKilowatts(kilowatts) {
+    const nameplate = roundTo(Number(kilowatts) || 0, 3);
+    const limit = roundTo(nameplate * CONTINUOUS, 3);
+    return {
+      kilowatts: nameplate,
+      kilowattHours: nameplate,
+      limitKilowatts: limit,
+      limitKilowattHours: limit,
+      overKilowatts: roundTo(nameplate - limit, 3),
+    };
+  }
+
+  function rowObject(mapped, cells) {
+    const record = {};
+    for (let i = 0; i < mapped.length; i++) {
+      if (!mapped[i]) continue;
+      record[mapped[i]] = cells[i] === undefined ? "" : String(cells[i]).trim();
+    }
+    return record;
+  }
+
+  function parseNumber(value) {
+    if (value === undefined || value === null || String(value).trim() === "") return null;
+    const n = Number(String(value).replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function indexAssets(assets) {
+    const map = new Map();
+    assets.forEach(function (asset) {
+      map.set(keyOf(asset.assetName), asset);
+    });
+    return map;
+  }
+
+  function upsertAsset(bucket, spec) {
+    const name = cleanName(spec.assetName);
+    if (!name) return { asset: null, created: false, updated: false };
+    const existing = bucket.get(keyOf(name));
+    const kind = spec.assetType ? kindFromType(spec.assetType) : (spec.defaultKind || "");
+    if (!existing) {
+      const asset = {
+        id: makeId(),
+        assetName: name,
+        assetNumber: cleanName(spec.assetNumber),
+        assetType: cleanName(spec.assetType),
+        materialName: cleanName(spec.materialName),
+        operationalStatus: cleanName(spec.operationalStatus),
+        room: cleanName(spec.room),
+        cabinet: cleanName(spec.cabinet),
+        site: cleanName(spec.site),
+        kind: kind || "other",
+        notes: "",
+        updatedAt: new Date().toISOString(),
+      };
+      bucket.set(keyOf(name), asset);
+      return { asset: asset, created: true, updated: false };
+    }
+    let updated = false;
+    function fill(field, value) {
+      const next = cleanName(value);
+      if (next && existing[field] !== next) {
+        existing[field] = next;
+        updated = true;
+      }
+    }
+    fill("assetNumber", spec.assetNumber);
+    fill("assetType", spec.assetType);
+    fill("materialName", spec.materialName);
+    fill("operationalStatus", spec.operationalStatus);
+    fill("room", spec.room);
+    fill("cabinet", spec.cabinet);
+    fill("site", spec.site);
+    if (spec.assetType) {
+      const nextKind = kindFromType(spec.assetType);
+      if (existing.kind !== nextKind) {
+        existing.kind = nextKind;
+        updated = true;
+      }
+    } else if (spec.defaultKind && (existing.kind === "other" || !existing.kind)) {
+      existing.kind = spec.defaultKind;
+      updated = true;
+    }
+    if (updated) existing.updatedAt = new Date().toISOString();
+    return { asset: existing, created: false, updated: updated };
+  }
+
+  function defaultKindFor(mapped) {
+    const headers = mapped.join(" ");
+    if (headers.indexOf("power strip") !== -1) return "rpdu";
+    return "";
+  }
+
+  function applyImport(state, text, place) {
+    const source = String(text || "").trim();
+    const filedSite = place && cleanName(place.site);
+    const filedRoom = place && cleanName(place.room);
+    if (!source) {
+      return { state: state, summary: { ok: false, message: "Paste a sheet first." } };
+    }
+    const delimiter = detectDelimiter(source);
+    const table = parseDelimited(source, delimiter);
+    const header = findHeader(table);
+    if (!header) {
+      return {
+        state: state,
+        summary: {
+          ok: false,
+          message: "No header row found. Include the row that says Consumer Asset Name, Supplier Asset Name, or Asset Name.",
+        },
+      };
+    }
+    const kind = sheetKind(header.mapped);
+    if (kind === "unknown") {
+      return {
+        state: state,
+        summary: { ok: false, message: "Those columns are not a cabinet sheet or a Power BDM sheet yet." },
+      };
+    }
+    if (kind === "cabinets" && (!filedSite || !filedRoom)) {
+      return {
+        state: state,
+        summary: { ok: false, message: "Enter the site ID and the room before importing cabinets." },
+      };
+    }
+    const next = {
+      assets: state.assets.map(function (asset) { return Object.assign({}, asset); }),
+      links: state.links.map(function (link) { return Object.assign({}, link); }),
+      readings: state.readings.slice(),
+      rooms: state.rooms.map(function (room) { return Object.assign({}, room); }),
+    };
+    const bucket = indexAssets(next.assets);
+    const linkKeys = new Set(next.links.map(linkKey));
+    let created = 0;
+    let updated = 0;
+    let linksAdded = 0;
+    let duplicates = 0;
+    let incomplete = 0;
+    const used = header.mapped.filter(function (name, index, all) {
+      return name && all.indexOf(name) === index;
+    });
+    const fallbackKind = defaultKindFor(header.mapped);
+
+    let cabinetsTouched = [];
+    function rememberCabinet(name) {
+      const cabinet = cleanName(name);
+      if (cabinet && cabinetsTouched.indexOf(cabinet) === -1) cabinetsTouched.push(cabinet);
+    }
+    function placedRoom(record) {
+      return cleanName(record.room) || filedRoom || "";
+    }
+    function placedSite(record) {
+      return cleanName(record.site) || filedSite || "";
+    }
+
+    for (let r = header.index + 1; r < table.length; r++) {
+      const record = rowObject(header.mapped, table[r]);
+      if (kind === "cabinets") {
+        const cabinet = cleanName(record.cabinet);
+        if (!cabinet) {
+          incomplete++;
+          continue;
+        }
+        const volts = record.volts === "120" || Number(record.volts) === 120 ? 120 : 208;
+        const result = computeBreakers(volts, [record.breaker1, record.breaker2, record.breaker3], 1);
+        if (!result.breakers.length) {
+          incomplete++;
+          continue;
+        }
+        upsertAsset(bucket, {
+          assetName: cabinet,
+          assetType: "Cabinet",
+          room: filedRoom,
+          site: filedSite,
+          cabinet: cabinet,
+          defaultKind: "other",
+        });
+        next.readings.push({
+          id: makeId(),
+          recordedAt: new Date().toISOString(),
+          site: filedSite,
+          room: filedRoom,
+          cabinet: cabinet,
+          volts: volts,
+          breakers: result.breakers,
+          watts: result.watts,
+          kilowatts: result.kilowatts,
+          kva: result.kva,
+          rpduName: cabinet,
+        });
+        rememberCabinet(cabinet);
+        created++;
+        continue;
+      }
+      if (kind === "assets") {
+        const result = upsertAsset(bucket, {
+          assetName: record.assetName,
+          assetNumber: record.assetNumber,
+          assetType: record.assetType,
+          materialName: record.materialName,
+          operationalStatus: record.operationalStatus,
+          room: placedRoom(record),
+          cabinet: record.cabinet,
+          site: placedSite(record),
+          defaultKind: fallbackKind,
+        });
+        if (result.created) created++;
+        else if (result.updated) updated++;
+        continue;
+      }
+      const consumerName = cleanName(record.consumerName);
+      const supplierName = cleanName(record.supplierName);
+      if (!consumerName || !supplierName) {
+        incomplete++;
+        continue;
+      }
+      const consumer = upsertAsset(bucket, {
+        assetName: consumerName,
+        assetNumber: record.consumerNumber,
+        assetType: record.consumerType,
+        materialName: record.consumerMaterial,
+        operationalStatus: record.consumerStatus,
+        room: placedRoom(record),
+        cabinet: record.cabinet,
+        site: placedSite(record),
+      });
+      const supplier = upsertAsset(bucket, {
+        assetName: supplierName,
+        assetNumber: record.supplierNumber,
+        assetType: record.supplierType,
+        materialName: record.supplierMaterial,
+        operationalStatus: record.supplierStatus,
+        site: filedSite || "",
+      });
+      if (consumer.created) created++;
+      else if (consumer.updated) updated++;
+      if (supplier.created) created++;
+      else if (supplier.updated) updated++;
+      rememberCabinet(record.cabinet);
+      const link = {
+        id: makeId(),
+        consumerName: consumer.asset.assetName,
+        consumerType: consumer.asset.assetType,
+        supplierName: supplier.asset.assetName,
+        supplierType: supplier.asset.assetType,
+        plugPosition: cleanName(record.plugPosition),
+        supplierOutlet: cleanName(record.supplierOutlet),
+        connectionName: cleanName(record.connectionName),
+        breaker: cleanName(record.breaker),
+        panel: cleanName(record.panel),
+        maxKva: parseNumber(record.maxKva),
+        maxKw: parseNumber(record.maxKw),
+      };
+      const signature = linkKey(link);
+      if (linkKeys.has(signature)) {
+        duplicates++;
+        continue;
+      }
+      linkKeys.add(signature);
+      next.links.push(link);
+      linksAdded++;
+    }
+    next.assets = Array.from(bucket.values()).sort(function (a, b) {
+      return naturalCompare(a.assetName, b.assetName);
+    });
+    const summary = {
+      ok: true,
+      sheet: kind,
+      dataRows: table.length - header.index - 1,
+      created: created,
+      updated: updated,
+      linksAdded: linksAdded,
+      duplicates: duplicates,
+      incomplete: incomplete,
+      columns: used,
+      site: filedSite || "",
+      room: filedRoom || "",
+      cabinets: cabinetsTouched.sort(naturalCompare),
+      message: kind === "cabinets"
+        ? "Saved " + cabinetsTouched.length + " cabinets in " + filedSite + " / " + filedRoom + "."
+        : kind === "links"
+        ? "Added " + linksAdded + " power connections" + (filedSite ? " under " + filedSite + " / " + filedRoom + "." : ".")
+        : "Updated the asset list" + (filedSite ? " under " + filedSite + " / " + filedRoom + "." : "."),
+    };
+    return { state: next, summary: summary };
+  }
+
+  function linkKey(link) {
+    return [
+      keyOf(link.consumerName),
+      keyOf(link.supplierName),
+      keyOf(link.supplierOutlet),
+      keyOf(link.plugPosition),
+      keyOf(link.breaker),
+      keyOf(link.panel),
+    ].join("|");
+  }
+
+  function assetByName(state, name) {
+    const wanted = keyOf(name);
+    if (!wanted) return null;
+    if (state.assetsByKey) return state.assetsByKey.get(wanted) || null;
+    for (let i = 0; i < state.assets.length; i++) {
+      if (keyOf(state.assets[i].assetName) === wanted) return state.assets[i];
+    }
+    return null;
+  }
+
+  function makeIndex(state) {
+    const bySupplier = new Map();
+    const byConsumer = new Map();
+    for (let i = 0; i < state.links.length; i++) {
+      const link = state.links[i];
+      const supplier = keyOf(link.supplierName);
+      const consumer = keyOf(link.consumerName);
+      if (!bySupplier.has(supplier)) bySupplier.set(supplier, []);
+      bySupplier.get(supplier).push(link);
+      if (!byConsumer.has(consumer)) byConsumer.set(consumer, []);
+      byConsumer.get(consumer).push(link);
+    }
+    return {
+      assets: state.assets,
+      assetsByKey: indexAssets(state.assets),
+      links: state.links,
+      readings: state.readings,
+      rooms: state.rooms,
+      bySupplier: bySupplier,
+      byConsumer: byConsumer,
+    };
+  }
+
+  function fromSupplier(index, name) {
+    return index.bySupplier.get(keyOf(name)) || [];
+  }
+
+  function toConsumer(index, name) {
+    return index.byConsumer.get(keyOf(name)) || [];
+  }
+
+  function downstream(index, name) {
+    const start = assetByName(index, name);
+    const startName = start ? start.assetName : cleanName(name);
+    const seen = new Set([keyOf(startName)]);
+    const queue = [{ name: startName, depth: 0 }];
+    const rows = [];
+    while (queue.length) {
+      const current = queue.shift();
+      if (current.depth >= 6) continue;
+      const links = fromSupplier(index, current.name);
+      for (let i = 0; i < links.length; i++) {
+        const link = links[i];
+        const id = keyOf(link.consumerName);
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        const asset = assetByName(index, link.consumerName);
+        const row = {
+          name: asset ? asset.assetName : link.consumerName,
+          assetType: asset ? asset.assetType : link.consumerType,
+          materialName: asset ? asset.materialName : "",
+          assetNumber: asset ? asset.assetNumber : "",
+          operationalStatus: asset ? asset.operationalStatus : "",
+          cabinet: asset ? asset.cabinet : "",
+          room: asset ? asset.room : "",
+          kind: asset ? asset.kind : kindFromType(link.consumerType),
+          via: current.name,
+          outlet: link.supplierOutlet,
+          plugPosition: link.plugPosition,
+          breaker: link.breaker,
+          panel: link.panel,
+          maxKva: link.maxKva,
+          depth: current.depth + 1,
+        };
+        rows.push(row);
+        queue.push({ name: row.name, depth: row.depth });
+      }
+    }
+    return rows;
+  }
+
+  function otherFeeds(index, consumerName, currentSupplier) {
+    return toConsumer(index, consumerName).filter(function (link) {
+      return keyOf(link.supplierName) !== keyOf(currentSupplier);
+    }).map(function (link) {
+      return { supplierName: link.supplierName, outlet: link.supplierOutlet, plugPosition: link.plugPosition };
+    });
+  }
+
+  function impact(state, name) {
+    const index = state.bySupplier ? state : makeIndex(state);
+    const asset = assetByName(index, name);
+    const displayName = asset ? asset.assetName : cleanName(name);
+    if (!displayName) return null;
+    const down = downstream(index, displayName);
+    const lostNames = new Set([keyOf(displayName)]);
+    down.forEach(function (row) { lostNames.add(keyOf(row.name)); });
+    const withFeeds = down.map(function (row) {
+      const feeds = otherFeeds(index, row.name, row.via);
+      const surviving = feeds.filter(function (feed) { return !lostNames.has(keyOf(feed.supplierName)); });
+      const samePath = feeds.filter(function (feed) { return lostNames.has(keyOf(feed.supplierName)); });
+      return Object.assign({}, row, {
+        otherFeeds: surviving,
+        samePathFeeds: samePath,
+        singleCord: surviving.length === 0 && (row.kind === "device" || row.kind === "other"),
+      });
+    });
+    const upstream = [];
+    const seen = new Set([keyOf(displayName)]);
+    let frontier = [displayName];
+    let depth = 0;
+    while (frontier.length && depth < 6) {
+      const next = [];
+      frontier.forEach(function (current) {
+        toConsumer(index, current).forEach(function (link) {
+          const id = keyOf(link.supplierName);
+          if (!id || seen.has(id)) return;
+          seen.add(id);
+          const supplier = assetByName(index, link.supplierName);
+          upstream.push({
+            name: supplier ? supplier.assetName : link.supplierName,
+            kind: supplier ? supplier.kind : kindFromType(link.supplierType),
+            assetType: supplier ? supplier.assetType : link.supplierType,
+            outlet: link.supplierOutlet,
+            plugPosition: link.plugPosition,
+            depth: depth + 1,
+            feeds: current,
+          });
+          next.push(supplier ? supplier.assetName : link.supplierName);
+        });
+      });
+      frontier = next;
+      depth++;
+    }
+    const devices = withFeeds.filter(function (row) { return row.kind === "device" || row.kind === "other"; });
+    devices.sort(function (a, b) {
+      if (a.singleCord !== b.singleCord) return a.singleCord ? -1 : 1;
+      return naturalCompare(a.name, b.name);
+    });
+    const equipment = withFeeds.filter(function (row) { return row.kind === "rpdu" || row.kind === "pdu" || row.kind === "power"; });
+    return {
+      name: displayName,
+      asset: asset,
+      upstream: upstream,
+      devices: devices,
+      equipment: equipment,
+      singleCord: devices.filter(function (row) { return row.singleCord; }).length,
+    };
+  }
+
+  function roomPdusFor(index, assetName) {
+    const found = [];
+    const seen = new Set([keyOf(assetName)]);
+    let frontier = [assetName];
+    let depth = 0;
+    while (frontier.length && depth < 6) {
+      const next = [];
+      frontier.forEach(function (current) {
+        toConsumer(index, current).forEach(function (link) {
+          const id = keyOf(link.supplierName);
+          if (!id || seen.has(id)) return;
+          seen.add(id);
+          const asset = assetByName(index, link.supplierName);
+          const name = asset ? asset.assetName : link.supplierName;
+          const kind = asset ? asset.kind : kindFromType(link.supplierType);
+          if (kind === "pdu") found.push(name);
+          next.push(name);
+        });
+      });
+      frontier = next;
+      depth++;
+    }
+    return found.sort(naturalCompare);
+  }
+
+  function inferredPlace(index, assetName, field) {
+    const values = [];
+    fromSupplier(index, assetName).forEach(function (link) {
+      const consumer = assetByName(index, link.consumerName);
+      if (consumer && consumer[field]) values.push(consumer[field]);
+    });
+    const unique = values.filter(function (value, index) { return values.indexOf(value) === index; });
+    return unique.length === 1 ? unique[0] : "";
+  }
+
+  function latestReading(state, assetName) {
+    const wanted = keyOf(assetName);
+    const matches = state.readings.filter(function (reading) { return keyOf(reading.rpduName) === wanted; });
+    matches.sort(function (a, b) { return a.recordedAt < b.recordedAt ? 1 : -1; });
+    return matches[0] || null;
+  }
+
+  function choicesFor(state, field, site, room) {
+    const siteKey = keyOf(site);
+    const roomKey = keyOf(room);
+    const values = [];
+    function add(value) {
+      const name = cleanName(value);
+      if (name && values.indexOf(name) === -1) values.push(name);
+    }
+    (state.readings || []).forEach(function (reading) {
+      if (siteKey && keyOf(reading.site) !== siteKey) return;
+      if (field === "cabinet" && roomKey && keyOf(reading.room) !== roomKey) return;
+      add(field === "room" ? reading.room : field === "cabinet" ? reading.cabinet : reading[field]);
+    });
+    (state.assets || []).forEach(function (asset) {
+      if (siteKey && keyOf(asset.site) !== siteKey) return;
+      if (field === "cabinet" && roomKey && keyOf(asset.room) !== roomKey) return;
+      if (field === "room") add(asset.room);
+      if (field === "cabinet") add(asset.cabinet);
+    });
+    values.sort(naturalCompare);
+    return values;
+  }
+
+  function readingForCabinet(state, place) {
+    const site = keyOf(place && place.site);
+    const room = keyOf(place && place.room);
+    const cabinet = keyOf(place && place.cabinet);
+    const rpdu = keyOf(place && place.rpduName);
+    if (!site || !room || !cabinet) return null;
+    const matches = (state.readings || []).filter(function (reading) {
+      if (keyOf(reading.site) !== site || keyOf(reading.room) !== room || keyOf(reading.cabinet) !== cabinet) return false;
+      const named = keyOf(reading.rpduName);
+      if (rpdu && named && named !== rpdu) return false;
+      return true;
+    });
+    matches.sort(function (a, b) { return String(a.recordedAt) < String(b.recordedAt) ? 1 : -1; });
+    return matches[0] || null;
+  }
+
+  function decorateRpdu(state, asset) {
+    const index = state.bySupplier ? state : makeIndex(state);
+    const cabinetInferred = asset.cabinet ? "" : inferredPlace(index, asset.assetName, "cabinet");
+    const roomInferred = asset.room ? "" : inferredPlace(index, asset.assetName, "room");
+    const direct = fromSupplier(index, asset.assetName);
+    let connectedKva = 0;
+    let kvaKnown = false;
+    let singleCord = 0;
+    direct.forEach(function (link) {
+      const consumer = assetByName(index, link.consumerName);
+      const kind = consumer ? consumer.kind : kindFromType(link.consumerType);
+      if (kind === "device" || kind === "other") {
+        if (otherFeeds(index, link.consumerName, asset.assetName).length === 0) singleCord++;
+        if (link.maxKva !== null) {
+          connectedKva += link.maxKva;
+          kvaKnown = true;
+        }
+      }
+    });
+    const deviceNames = direct.map(function (link) { return link.consumerName; }).join(" ");
+    const roomPdus = roomPdusFor(index, asset.assetName);
+    const cabinet = asset.cabinet || cabinetInferred;
+    const room = asset.room || roomInferred;
+    return {
+      asset: asset,
+      cabinet: cabinet,
+      cabinetInferred: Boolean(cabinetInferred),
+      room: room,
+      roomInferred: Boolean(roomInferred),
+      roomPdus: roomPdus,
+      deviceCount: direct.filter(function (link) {
+        const consumer = assetByName(index, link.consumerName);
+        const kind = consumer ? consumer.kind : kindFromType(link.consumerType);
+        return kind === "device" || kind === "other";
+      }).length,
+      singleCord: singleCord,
+      connectedKva: kvaKnown ? roundTo(connectedKva, 3) : null,
+      latest: latestReading(state, asset.assetName),
+      haystack: [
+        asset.assetName,
+        asset.assetNumber,
+        asset.materialName,
+        cabinet,
+        room,
+        roomPdus.join(" "),
+        deviceNames,
+      ].join(" ").toLowerCase(),
+    };
+  }
+
+  function naturalCompare(a, b) {
+    return String(a || "").localeCompare(String(b || ""), undefined, { numeric: true, sensitivity: "base" });
+  }
+
+  function libraryView(state, mode, query) {
+    const index = makeIndex(state);
+    const q = String(query || "").trim().toLowerCase();
+    let rows = state.assets.filter(function (asset) { return asset.kind === "rpdu"; }).map(function (asset) {
+      return decorateRpdu(index, asset);
+    });
+    if (q) rows = rows.filter(function (row) { return row.haystack.indexOf(q) !== -1; });
+    rows.sort(function (a, b) { return naturalCompare(a.asset.assetName, b.asset.assetName); });
+    if (mode === "name") return [{ title: "rPDUs", key: "all", items: rows }];
+    if (mode === "pdu") {
+      const groups = new Map();
+      rows.forEach(function (row) {
+        const keys = row.roomPdus.length ? row.roomPdus : ["No room PDU yet"];
+        keys.forEach(function (title) {
+          if (!groups.has(title)) groups.set(title, []);
+          groups.get(title).push(row);
+        });
+      });
+      return Array.from(groups.entries()).sort(function (a, b) {
+        return naturalCompare(a[0], b[0]);
+      }).map(function (entry) {
+        return { title: entry[0], key: "pdu:" + entry[0], items: entry[1] };
+      });
+    }
+    const field = mode === "room" ? "room" : "cabinet";
+    const empty = mode === "room" ? "No room yet" : "No cabinet yet";
+    const groups = new Map();
+    rows.forEach(function (row) {
+      const title = row[field] || empty;
+      if (!groups.has(title)) groups.set(title, []);
+      groups.get(title).push(row);
+    });
+    return Array.from(groups.entries()).sort(function (a, b) {
+      if (a[0] === empty) return 1;
+      if (b[0] === empty) return -1;
+      return naturalCompare(a[0], b[0]);
+    }).map(function (entry) {
+      return { title: entry[0], key: field + ":" + entry[0], items: entry[1] };
+    });
+  }
+
+  function placeLibrary(state, query) {
+    const q = String(query || "").trim().toLowerCase();
+    const sites = new Map();
+    function ensure(site, room) {
+      const siteName = cleanName(site) || "No site yet";
+      const roomName = cleanName(room) || "No room yet";
+      if (!sites.has(siteName)) sites.set(siteName, new Map());
+      const rooms = sites.get(siteName);
+      if (!rooms.has(roomName)) rooms.set(roomName, new Map());
+      return rooms.get(roomName);
+    }
+    state.readings.forEach(function (reading) {
+      const label = cleanName(reading.rpduName) || cleanName(reading.cabinet);
+      if (!label) return;
+      const cabinets = ensure(reading.site, reading.room);
+      const key = reading.id || keyOf(label) + "|" + String(reading.recordedAt || "");
+      cabinets.set(key, Object.assign({}, reading, { label: label }));
+    });
+    state.assets.forEach(function (asset) {
+      const covered = state.readings.some(function (reading) {
+        return keyOf(reading.rpduName) === keyOf(asset.assetName) || (asset.cabinet && keyOf(reading.cabinet) === keyOf(asset.cabinet) && keyOf(reading.site) === keyOf(asset.site) && keyOf(reading.room) === keyOf(asset.room));
+      });
+      if (covered || !asset.cabinet) return;
+      const cabinets = ensure(asset.site, asset.room);
+      if (!cabinets.has(keyOf(asset.cabinet))) {
+        cabinets.set(keyOf(asset.cabinet), {
+          cabinet: asset.cabinet,
+          label: asset.cabinet,
+          site: asset.site || "",
+          room: asset.room || "",
+          rpduName: asset.kind === "rpdu" ? asset.assetName : "",
+          kilowatts: null,
+          kva: null,
+          volts: null,
+          breakers: [],
+        });
+      }
+    });
+    const tree = [];
+    sites.forEach(function (rooms, site) {
+      const roomList = [];
+      rooms.forEach(function (cabinets, room) {
+        let items = Array.from(cabinets.values());
+        if (q) {
+          items = items.filter(function (item) {
+            return (site + " " + room + " " + (item.label || item.cabinet) + " " + (item.rpduName || "") + " " + (item.pdu || "") + " " + (item.circuits || "")).toLowerCase().indexOf(q) !== -1;
+          });
+        }
+        items.sort(function (a, b) { return naturalCompare(a.label || a.cabinet, b.label || b.cabinet); });
+        if (items.length || !q) roomList.push({ room: room, cabinets: items });
+      });
+      roomList.sort(function (a, b) { return naturalCompare(a.room, b.room); });
+      const visible = q ? roomList.filter(function (room) { return room.cabinets.length; }) : roomList;
+      if (visible.length) tree.push({ site: site, rooms: visible });
+    });
+    tree.sort(function (a, b) {
+      if (a.site === "No site yet") return 1;
+      if (b.site === "No site yet") return -1;
+      return naturalCompare(a.site, b.site);
+    });
+    return tree;
+  }
+
+  function counts(state) {
+    const tally = { rpdu: 0, pdu: 0, device: 0, power: 0, other: 0 };
+    state.assets.forEach(function (asset) {
+      if (tally[asset.kind] === undefined) tally.other++;
+      else tally[asset.kind]++;
+    });
+    return {
+      rpdu: tally.rpdu,
+      pdu: tally.pdu,
+      device: tally.device,
+      power: tally.power,
+      other: tally.other,
+      links: state.links.length,
+      readings: state.readings.length,
+    };
+  }
+
+  function searchAssets(state, query, kinds) {
+    const q = String(query || "").trim().toLowerCase();
+    if (!q) return [];
+    return state.assets.filter(function (asset) {
+      if (kinds && kinds.indexOf(asset.kind) === -1) return false;
+      return (asset.assetName + " " + asset.assetNumber + " " + asset.cabinet + " " + asset.room).toLowerCase().indexOf(q) !== -1;
+    }).sort(function (a, b) { return naturalCompare(a.assetName, b.assetName); }).slice(0, 12);
+  }
+
+  function csvField(value) {
+    if (value === null || value === undefined) return "";
+    const text = String(value);
+    if (/[",\r\n]/.test(text)) return '"' + text.replace(/"/g, '""') + '"';
+    return text;
+  }
+
+  function readingSignature(reading) {
+    const amps = [0, 0, 0];
+    if (reading.breakers && reading.breakers.length) {
+      reading.breakers.forEach(function (breaker) {
+        if (breaker.n >= 1 && breaker.n <= 3) amps[breaker.n - 1] = Number(breaker.amps) || 0;
+      });
+    } else {
+      const list = reading.amps || [];
+      for (let i = 0; i < 3 && i < list.length; i++) amps[i] = Number(list[i]) || 0;
+    }
+    return [
+      keyOf(reading.site),
+      keyOf(reading.room),
+      keyOf(reading.cabinet),
+      keyOf(reading.rpduName),
+      keyOf(reading.pdu),
+      keyOf(reading.circuits),
+      String(reading.recordedAt || ""),
+      amps.join(","),
+    ].join("|");
+  }
+
+  function readingFile(readings) {
+    const list = Array.isArray(readings) ? readings : ((readings && readings.readings) || []);
+    return {
+      app: "rPDU Power v1",
+      kind: "readings",
+      readings: list.map(function (reading) {
+        const amps = [0, 0, 0];
+        if (reading.breakers && reading.breakers.length) {
+          reading.breakers.forEach(function (breaker) {
+            if (breaker.n >= 1 && breaker.n <= 3) amps[breaker.n - 1] = Number(breaker.amps) || 0;
+          });
+        } else {
+          const values = reading.amps || [];
+          for (let i = 0; i < 3 && i < values.length; i++) amps[i] = Number(values[i]) || 0;
+        }
+        return {
+          site: cleanName(reading.site),
+          room: cleanName(reading.room),
+          cabinet: cleanName(reading.cabinet),
+          rpduName: cleanName(reading.rpduName),
+          pdu: cleanName(reading.pdu),
+          circuits: cleanName(reading.circuits),
+          volts: Number(reading.volts) === 120 ? 120 : 208,
+          amps: amps,
+          notes: cleanName(reading.notes),
+          recordedAt: reading.recordedAt || "",
+          photoDataUrl: typeof reading.photoDataUrl === "string" ? reading.photoDataUrl : "",
+        };
+      }),
+    };
+  }
+
+  function applyReadingFile(state, raw, place) {
+    let parsed = raw;
+    if (typeof raw === "string") {
+      try { parsed = JSON.parse(raw); }
+      catch (error) {
+        return { state: state, summary: { ok: false, message: "That file is not a reading file." } };
+      }
+    }
+    const packet = parsed && parsed.kind === "readings" ? parsed : (parsed && parsed.readings ? parsed : null);
+    const rows = packet ? packet.readings : (parsed && (parsed.cabinet || parsed.rpduName || parsed.amps) ? [parsed] : null);
+    if (!rows) {
+      return { state: state, summary: { ok: false, message: "That file is not a reading file." } };
+    }
+    const filedSite = place && cleanName(place.site);
+    const filedRoom = place && cleanName(place.room);
+    const next = {
+      assets: state.assets.map(function (asset) { return Object.assign({}, asset); }),
+      links: state.links.map(function (link) { return Object.assign({}, link); }),
+      readings: state.readings.slice(),
+      rooms: state.rooms.map(function (room) { return Object.assign({}, room); }),
+    };
+    const seen = new Set(next.readings.map(readingSignature));
+    let added = 0;
+    let duplicates = 0;
+    let incomplete = 0;
+    rows.forEach(function (row) {
+      const site = cleanName(row.site) || filedSite || "";
+      const room = cleanName(row.room) || filedRoom || "";
+      const cabinet = cleanName(row.cabinet);
+      const rpduName = cleanName(row.rpduName);
+      if (!site || !room || (!cabinet && !rpduName)) {
+        incomplete++;
+        return;
+      }
+      const volts = Number(row.volts) === 120 ? 120 : 208;
+      const slots = [0, 0, 0];
+      if (row.breakers && row.breakers.length) {
+        row.breakers.forEach(function (breaker) {
+          if (breaker.n >= 1 && breaker.n <= 3) slots[breaker.n - 1] = Number(breaker.amps) || 0;
+        });
+      } else {
+        const values = row.amps || [];
+        for (let i = 0; i < 3 && i < values.length; i++) slots[i] = Number(values[i]) || 0;
+      }
+      const found = computeBreakers(volts, slots, 1);
+      if (!found.breakers.length) {
+        incomplete++;
+        return;
+      }
+      const recordedAt = row.recordedAt || new Date().toISOString();
+      const reading = {
+        id: makeId(),
+        recordedAt: recordedAt,
+        site: site,
+        room: room,
+        cabinet: cabinet,
+        rpduName: rpduName,
+        pdu: cleanName(row.pdu),
+        circuits: cleanName(row.circuits),
+        volts: volts,
+        breakers: found.breakers,
+        watts: found.watts,
+        kilowatts: found.kilowatts,
+        kva: found.kva,
+        notes: cleanName(row.notes),
+        photoDataUrl: typeof row.photoDataUrl === "string" ? row.photoDataUrl : "",
+      };
+      const signature = readingSignature(reading);
+      if (seen.has(signature)) {
+        duplicates++;
+        return;
+      }
+      seen.add(signature);
+      next.readings.push(reading);
+      added++;
+      if (cabinet) ensurePlaceAsset(next, { assetName: cabinet, assetType: "Cabinet", room: room, site: site, cabinet: cabinet, kind: "other" });
+      if (rpduName) ensurePlaceAsset(next, { assetName: rpduName, assetType: "Powerstrip", room: room, site: site, cabinet: cabinet, kind: "rpdu" });
+    });
+    if (!added && !duplicates) {
+      return { state: state, summary: { ok: false, added: 0, duplicates: 0, incomplete: incomplete, message: "No cabinet readings were in that file." } };
+    }
+    return {
+      state: next,
+      summary: {
+        ok: true,
+        added: added,
+        duplicates: duplicates,
+        incomplete: incomplete,
+        message: "Added " + added + " cabinet readings." + (duplicates ? " Already in the library: " + duplicates + "." : ""),
+      },
+    };
+  }
+
+  function ensurePlaceAsset(bucket, spec) {
+    const found = bucket.assets.find(function (asset) {
+      return keyOf(asset.assetName) === keyOf(spec.assetName) && keyOf(asset.site || "") === keyOf(spec.site || "") && keyOf(asset.room || "") === keyOf(spec.room || "");
+    });
+    if (found) return;
+    bucket.assets.push({
+      id: makeId(),
+      assetName: spec.assetName,
+      assetNumber: "",
+      assetType: spec.assetType,
+      materialName: "",
+      operationalStatus: "",
+      room: spec.room,
+      cabinet: spec.cabinet || "",
+      site: spec.site,
+      kind: spec.kind,
+      notes: "",
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  function toCsv(rows) {
+    return "\uFEFF" + rows.map(function (row) {
+      return row.map(csvField).join(",");
+    }).join("\r\n") + "\r\n";
+  }
+
+  function impactCsv(report) {
+    const header = ["Single cord", "Device", "Type", "Material", "Asset number", "Status", "Cabinet", "Room", "Fed by", "Outlet", "Plug", "Breaker", "Panel", "Connection max kVA", "Other feeds"];
+    const body = report.devices.map(function (row) {
+      return [
+        row.singleCord ? "Yes" : "",
+        row.name,
+        row.assetType,
+        row.materialName,
+        row.assetNumber,
+        row.operationalStatus,
+        row.cabinet,
+        row.room,
+        row.via,
+        row.outlet,
+        row.plugPosition,
+        row.breaker,
+        row.panel,
+        row.maxKva === null || row.maxKva === undefined ? "" : row.maxKva,
+        row.otherFeeds.map(function (feed) {
+          return feed.supplierName + (feed.outlet ? " outlet " + feed.outlet : "");
+        }).join("; "),
+      ];
+    });
+    return toCsv([header].concat(body));
+  }
+
+  return {
+    PHASE_FACTOR: PHASE_FACTOR,
+    WATTS_PER_HP: WATTS_PER_HP,
+    roundTo: roundTo,
+    formatQty: formatQty,
+    formatPlain: formatPlain,
+    supplyLabel: supplyLabel,
+    ruleText: ruleText,
+    findingError: findingError,
+    computeFinding: computeFinding,
+    solveOhm: solveOhm,
+    GUIDE_CHECKS: GUIDE_CHECKS,
+    emptyState: emptyState,
+    makeId: makeId,
+    cleanName: cleanName,
+    rpduNameFor: rpduNameFor,
+    kindFromType: kindFromType,
+    kindLabel: kindLabel,
+    parseDelimited: parseDelimited,
+    detectDelimiter: detectDelimiter,
+    applyImport: applyImport,
+    assetByName: assetByName,
+    impact: impact,
+    roomPdusFor: roomPdusFor,
+    latestReading: latestReading,
+    choicesFor: choicesFor,
+    readingForCabinet: readingForCabinet,
+    decorateRpdu: decorateRpdu,
+    libraryView: libraryView,
+    placeLibrary: placeLibrary,
+    computeBreakers: computeBreakers,
+    thresholdFromKilowatts: thresholdFromKilowatts,
+    ampsFromText: ampsFromText,
+    readAmps: readAmps,
+    ampSampleImage: ampSampleImage,
+    readingFile: readingFile,
+    applyReadingFile: applyReadingFile,
+    FIELD_VOLTS: FIELD_VOLTS,
+    counts: counts,
+    searchAssets: searchAssets,
+    naturalCompare: naturalCompare,
+    toCsv: toCsv,
+    impactCsv: impactCsv,
+    keyOf: keyOf,
+  };
+});
+
+(function () {
+  const version = window.RPDU_VERSION;
+  const E = window.RpduEngine;
+  const app = document.querySelector("#app");
+  let state = E.emptyState();
+  let page = "cabinet";
+  let cabinetDraft = null;
+  let libraryMode = "cabinet";
+  let libraryQuery = "";
+  let pendingDeleteId = "";
+  let openName = "";
+  let queuedPick = "";
+  let pendingPhoto = "";
+  let ampsBeforeShot = null;
+  let cameraStream = null;
+  let scanTimer = null;
+  let glyphTemplates = null;
+  let importPlace = { site: "", room: "" };
+  let eraseArmed = false;
+  let persistChain = Promise.resolve();
+  let loadedPlaceKey = "";
+
+  document.querySelector("[data-version-label]").textContent = version.VERSION_LABEL;
+  document.querySelector("[data-display]").textContent = version.DISPLAY_NAME;
+  document.querySelector("[data-semver]").textContent = version.SEMVER;
+  document.title = version.DISPLAY_NAME;
+
+  function esc(value) {
+    return String(value === undefined || value === null ? "" : value).replace(/[&<>"']/g, function (ch) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+    });
+  }
+
+  function countLabel(count, word) {
+    return count + " " + word + (count === 1 ? "" : "s");
+  }
+
+  function safeImage(url) {
+    return typeof url === "string" && /^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(url) ? url : "";
+  }
+
+  function numberOrNull(value) {
+    if (String(value).trim() === "") return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  function when(iso) {
+    if (!iso) return "";
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return iso;
+    return date.toLocaleString();
+  }
+
+  function download(filename, text, type) {
+    const blob = new Blob([text], { type: type || "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function setStatus(text) {
+    const node = document.querySelector("#save-state");
+    if (node) node.textContent = text;
+  }
+
+  function renderStatus() {
+    const counts = E.counts(state);
+    const node = document.querySelector("#status");
+    if (!node) return;
+    const bits = [];
+    if (counts.rpdu || counts.device || counts.readings) {
+      bits.push(counts.rpdu + " rPDUs");
+      bits.push(counts.pdu + " room PDUs");
+      bits.push(counts.device + " devices");
+      bits.push(counts.readings + " readings");
+    } else bits.push("Library is empty until you import a Power BDM sheet or save a reading.");
+    node.textContent = bits.join(" · ");
+  }
+
+  function hydrate(raw) {
+    const next = E.emptyState();
+    if (!raw || typeof raw !== "object") return next;
+    next.assets = Array.isArray(raw.assets) ? raw.assets : [];
+    next.links = Array.isArray(raw.links) ? raw.links : [];
+    next.readings = Array.isArray(raw.readings) ? raw.readings : [];
+    next.rooms = Array.isArray(raw.rooms) ? raw.rooms : [];
+    return next;
+  }
+
+  function openDb() {
+    return new Promise(function (resolve, reject) {
+      const request = indexedDB.open("rpdu-power-v1", 1);
+      request.onupgradeneeded = function () {
+        if (!request.result.objectStoreNames.contains("kv")) request.result.createObjectStore("kv");
+      };
+      request.onsuccess = function () { resolve(request.result); };
+      request.onerror = function () { reject(request.error); };
+    });
+  }
+
+  function loadState() {
+    return openDb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        const request = db.transaction("kv", "readonly").objectStore("kv").get("state");
+        request.onsuccess = function () { resolve(request.result || null); };
+        request.onerror = function () { reject(request.error); };
+      });
+    }).catch(function () {
+      try {
+        const raw = localStorage.getItem("rpdu-power-v1");
+        return raw ? JSON.parse(raw) : null;
+      } catch (error) {
+        return null;
+      }
+    });
+  }
+
+  function writeState(snapshot) {
+    const copy = JSON.parse(JSON.stringify(snapshot));
+    return openDb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        const tx = db.transaction("kv", "readwrite");
+        tx.objectStore("kv").put(copy, "state");
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+      });
+    }).catch(function () {
+      localStorage.setItem("rpdu-power-v1", JSON.stringify(copy));
+    });
+  }
+
+  function persist() {
+    persistChain = persistChain.then(function () { return writeState(state); }, function () { return writeState(state); });
+    return persistChain.then(function () {
+      setStatus("Saved in this browser");
+      renderStatus();
+    }).catch(function () {
+      setStatus("Could not store the library. Download a backup from Import.");
+    });
+  }
+
+  function currentPage() {
+    let name = (location.hash || "#cabinet").replace("#", "").split("?")[0];
+    if (name === "find") name = "convert";
+    return ["cabinet", "convert", "library", "powerdown", "import"].indexOf(name) === -1 ? "cabinet" : name;
+  }
+
+  function markTabs() {
+    document.querySelectorAll(".tabs a").forEach(function (link) {
+      if (link.dataset.page === page) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
+    });
+  }
+
+  function show(next) {
+    stopCamera();
+    page = next || currentPage();
+    history.replaceState(null, "", "#" + page);
+    markTabs();
+    if (page === "cabinet") renderCabinet();
+    else if (page === "convert") renderConvert();
+    else if (page === "library") renderLibrary();
+    else if (page === "powerdown") renderPowerdown();
+    else renderImport();
+    renderStatus();
+  }
+
+  function banner(kind, text) {
+    if (!text) return "";
+    return '<div class="banner ' + kind + '" role="status">' + esc(text) + "</div>";
+  }
+
+  function defaults() {
+    try { return JSON.parse(localStorage.getItem("rpdu-power-v1-defaults") || "{}"); }
+    catch (error) { return {}; }
+  }
+
+  function namesFor(field) {
+    const values = [];
+    function add(value) {
+      const name = E.cleanName(value);
+      if (name && values.indexOf(name) === -1) values.push(name);
+    }
+    state.readings.forEach(function (reading) { add(reading[field]); });
+    state.assets.forEach(function (asset) { add(asset[field]); });
+    values.sort(E.naturalCompare);
+    return values;
+  }
+
+  function optionList(id, values) {
+    return '<datalist id="' + id + '">' + values.map(function (name) {
+      return '<option value="' + esc(name) + '">';
+    }).join("") + "</datalist>";
+  }
+
+  function voltChip(value, current) {
+    return '<button type="button" class="chip" data-volt="' + value + '" aria-pressed="' + (String(current) === String(value) ? "true" : "false") + '">' + value + " V</button>";
+  }
+
+  function cabinetForm() {
+    const saved = defaults();
+    const draft = cabinetDraft || {};
+    const volts = String(draft.volts || saved.volts || "208") === "120" ? "120" : "208";
+    return {
+      site: draft.site !== undefined && draft.site !== null ? draft.site : (saved.site || ""),
+      room: draft.room !== undefined && draft.room !== null ? draft.room : (saved.room || ""),
+      cabinet: draft.cabinet || "",
+      feed: draft.feed === "B" ? "B" : "A",
+      pdu: draft.pdu || "",
+      circuits: draft.circuits || "",
+      volts: volts,
+      amps: draft.amps || ["", "", ""],
+      note: draft.note || "",
+    };
+  }
+
+  function readCabinetForm() {
+    return {
+      site: document.querySelector("#site").value,
+      room: document.querySelector("#room").value,
+      cabinet: document.querySelector("#cabinet").value,
+      rpdu: E.rpduNameFor(document.querySelector("#cabinet").value, selectedFeed()),
+      pdu: document.querySelector("#pdu").value,
+      circuits: document.querySelector("#circuits").value,
+      volts: selectedVolts(),
+      amps: [1, 2, 3].map(function (n) { return document.querySelector("#amp-" + n).value; }),
+      note: document.querySelector("#cabinet-note").value,
+    };
+  }
+
+  function selectedVolts() {
+    const button = app.querySelector("[data-volt][aria-pressed='true']");
+    return button && button.dataset.volt === "120" ? 120 : 208;
+  }
+
+  function selectedFeed() {
+    const button = app.querySelector("[data-feed][aria-pressed='true']");
+    return button && button.dataset.feed === "B" ? "B" : "A";
+  }
+
+  function feedChip(feed, current) {
+    return '<button type="button" class="chip" data-feed="' + feed + '" aria-pressed="' + (feed === current ? "true" : "false") + '">rPDU ' + feed + "</button>";
+  }
+
+  function renderCabinet() {
+    const form = cabinetForm();
+    app.innerHTML =
+      '<div class="layout">' +
+        '<section class="panel">' +
+          '<h1>Cabinet reading</h1>' +
+          '<p class="lead">Enter the site, the room, and the cabinet. Saved names are in each list. Example: cabinet DU06 in East Data Center at USNY01. Choosing a saved cabinet fills the breaker amps, PDU, and circuits. Breaker amps convert at power factor 1.0, then the scale uses 80% of that total once.</p>' +
+          '<div id="cabinet-banner"></div>' +
+          '<div class="fields">' +
+            '<label class="field">Site ID<input id="site" list="site-list" autocomplete="off" spellcheck="false" placeholder="USNY01" value="' + esc(form.site) + '"></label>' +
+            '<label class="field">Room<input id="room" list="room-list" autocomplete="off" spellcheck="false" placeholder="East Data Center" value="' + esc(form.room) + '"></label>' +
+            '<label class="field">Cabinet<input id="cabinet" list="cabinet-list" autocomplete="off" spellcheck="false" placeholder="DU06" value="' + esc(form.cabinet) + '"></label>' +
+            '<div class="field"><span>rPDU</span><div class="chips" role="group" aria-label="rPDU">' +
+              feedChip("A", form.feed) + feedChip("B", form.feed) +
+            '</div><p class="meta" id="rpdu-preview"></p></div>' +
+            '<label class="field">PDU<input id="pdu" list="pdu-list" autocomplete="off" spellcheck="false" placeholder="Optional" value="' + esc(form.pdu) + '"></label>' +
+            '<label class="field">Circuits<input id="circuits" autocomplete="off" spellcheck="false" placeholder="Optional" value="' + esc(form.circuits) + '"></label>' +
+            '<div class="span-2"><div class="chips" role="group" aria-label="Voltage">' +
+              voltChip(120, form.volts) + voltChip(208, form.volts) +
+            "</div></div>" +
+            '<label class="field">rPDU breaker 1<input id="amp-1" inputmode="decimal" value="' + esc(form.amps[0] || "") + '"></label>' +
+            '<label class="field">rPDU breaker 2<input id="amp-2" inputmode="decimal" value="' + esc(form.amps[1] || "") + '"></label>' +
+            '<label class="field">rPDU breaker 3<input id="amp-3" inputmode="decimal" value="' + esc(form.amps[2] || "") + '"></label>' +
+            '<label class="field span-2">Note<textarea id="cabinet-note" style="min-height:72px">' + esc(form.note) + "</textarea></label>" +
+          "</div>" +
+          optionList("site-list", namesFor("site")) +
+          optionList("room-list", E.choicesFor(state, "room", form.site, "")) +
+          optionList("cabinet-list", E.choicesFor(state, "cabinet", form.site, form.room)) +
+          optionList("pdu-list", namesFor("pdu")) +
+          '<div class="photo-box" style="margin-top:12px">' +
+            '<strong>Breaker photo</strong>' +
+            '<p class="meta">Take photo opens the camera and reads the breaker amps into the three boxes. Live scan does the same while the camera stays open. Check the numbers, then save.</p>' +
+            '<video id="camera" class="viewfinder" autoplay playsinline muted hidden></video>' +
+            '<div class="actions">' +
+              '<button type="button" class="btn btn-ghost" id="live-scan">Live scan</button>' +
+              '<button type="button" class="btn btn-ghost" id="snap-photo" hidden>Use this frame</button>' +
+              '<button type="button" class="btn btn-ghost" id="reset-shot">Reset shot</button>' +
+              '<label class="btn btn-ghost">Take photo<input id="camera-photo" type="file" accept="image/*" capture="environment" hidden></label>' +
+              '<label class="btn btn-ghost">Choose a picture<input id="photo" type="file" accept="image/*" hidden></label>' +
+            "</div>" +
+            '<img id="preview" class="preview" alt="" hidden>' +
+          "</div>" +
+          '<div class="actions"><button type="button" class="btn btn-primary" id="save-cabinet">Save</button>' +
+          '<button type="button" class="btn btn-ghost" id="download-reading">Download reading file</button>' +
+          '<button type="button" class="btn btn-ghost" id="next-cabinet">Next cabinet</button></div>' +
+        "</section>" +
+        '<aside class="readout" id="readout" aria-live="polite"></aside>' +
+      "</div>";
+    bindCabinet();
+    refreshRpduName();
+    updateCabinet();
+    loadedPlaceKey = currentPlaceKey();
+  }
+
+  function refreshRpduName() {
+    const preview = document.querySelector("#rpdu-preview");
+    if (!preview) return;
+    const name = E.rpduNameFor(document.querySelector("#cabinet").value, selectedFeed());
+    preview.textContent = name ? "rPDU name " + name : "Type the cabinet and the rPDU name fills in.";
+  }
+
+  function currentPlaceKey() {
+    const site = document.querySelector("#site");
+    const room = document.querySelector("#room");
+    const cabinet = document.querySelector("#cabinet");
+    if (!site || !room || !cabinet) return "";
+    return E.keyOf(site.value) + "|" + E.keyOf(room.value) + "|" + E.keyOf(cabinet.value) + "|" + selectedFeed();
+  }
+
+  function fillList(id, values) {
+    const list = document.querySelector("#" + id);
+    if (!list) return;
+    list.innerHTML = values.map(function (name) {
+      return '<option value="' + esc(name) + '">';
+    }).join("");
+  }
+
+  function refreshPlaceLists() {
+    const site = document.querySelector("#site");
+    const room = document.querySelector("#room");
+    if (!site || !room) return;
+    fillList("room-list", E.choicesFor(state, "room", site.value, ""));
+    fillList("cabinet-list", E.choicesFor(state, "cabinet", site.value, room.value));
+  }
+
+  function fillSavedCabinet() {
+    const key = currentPlaceKey();
+    if (!key || key === loadedPlaceKey) return;
+    const form = readCabinetForm();
+    loadedPlaceKey = key;
+    if (!E.cleanName(form.site) || !E.cleanName(form.room) || !E.cleanName(form.cabinet)) return;
+    const found = E.readingForCabinet(state, {
+      site: form.site,
+      room: form.room,
+      cabinet: form.cabinet,
+      rpduName: form.rpdu,
+    });
+    const box = document.querySelector("#cabinet-banner");
+    if (!found) {
+      if (box && box.textContent.indexOf("Loaded ") === 0) box.innerHTML = "";
+      return;
+    }
+    const pdu = document.querySelector("#pdu");
+    const circuits = document.querySelector("#circuits");
+    const note = document.querySelector("#cabinet-note");
+    if (pdu) pdu.value = found.pdu || "";
+    if (circuits) circuits.value = found.circuits || "";
+    if (note) note.value = found.notes || "";
+    const amps = ["", "", ""];
+    (found.breakers || []).forEach(function (breaker) {
+      if (breaker.n >= 1 && breaker.n <= 3) amps[breaker.n - 1] = String(breaker.amps);
+    });
+    for (let i = 0; i < 3; i++) {
+      const input = document.querySelector("#amp-" + (i + 1));
+      if (input) input.value = amps[i];
+    }
+    const volts = found.volts === 120 ? "120" : "208";
+    app.querySelectorAll("[data-volt]").forEach(function (button) {
+      button.setAttribute("aria-pressed", button.dataset.volt === volts ? "true" : "false");
+    });
+    ampsBeforeShot = null;
+    pendingPhoto = safeImage(found.photoDataUrl);
+    const preview = document.querySelector("#preview");
+    if (preview) {
+      if (pendingPhoto) {
+        preview.src = pendingPhoto;
+        preview.hidden = false;
+      } else {
+        preview.removeAttribute("src");
+        preview.hidden = true;
+      }
+    }
+    updateCabinet();
+    if (box) box.innerHTML = banner("ok", "Loaded " + (found.rpduName || form.rpdu) + ". Breaker amps, PDU, and circuits are filled from the saved reading. Change what you need, then save.");
+  }
+
+  function bindCabinet() {
+    app.querySelectorAll("[data-volt]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        app.querySelectorAll("[data-volt]").forEach(function (item) {
+          item.setAttribute("aria-pressed", item === button ? "true" : "false");
+        });
+        updateCabinet();
+      });
+    });
+    ["#site", "#room", "#cabinet", "#amp-1", "#amp-2", "#amp-3"].forEach(function (selector) {
+      document.querySelector(selector).addEventListener("input", function () {
+        if (selector === "#site" || selector === "#room") refreshPlaceLists();
+        refreshRpduName();
+        updateCabinet();
+      });
+    });
+    ["#site", "#room", "#cabinet"].forEach(function (selector) {
+      document.querySelector(selector).addEventListener("change", fillSavedCabinet);
+    });
+    app.querySelectorAll("[data-feed]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        app.querySelectorAll("[data-feed]").forEach(function (item) {
+          item.setAttribute("aria-pressed", item === button ? "true" : "false");
+        });
+        refreshRpduName();
+        fillSavedCabinet();
+      });
+    });
+    document.querySelector("#photo").addEventListener("change", function (event) {
+      const file = event.target.files && event.target.files[0];
+      if (file) readPhotoFile(file);
+    });
+    document.querySelector("#camera-photo").addEventListener("change", function (event) {
+      const file = event.target.files && event.target.files[0];
+      if (file) readPhotoFile(file);
+    });
+    document.querySelector("#live-scan").addEventListener("click", startLiveScan);
+    document.querySelector("#reset-shot").addEventListener("click", resetShot);
+    document.querySelector("#snap-photo").addEventListener("click", function () {
+      const video = document.querySelector("#camera");
+      if (!video || !video.videoWidth) return;
+      rememberAmpsBeforeShot();
+      const canvas = frameFromVideo(video);
+      pendingPhoto = canvas.toDataURL("image/jpeg", 0.72);
+      showPreview(pendingPhoto);
+      recognizeCanvas(canvas);
+    });
+    if (pendingPhoto) {
+      const preview = document.querySelector("#preview");
+      preview.src = pendingPhoto;
+      preview.hidden = false;
+    }
+    document.querySelector("#save-cabinet").addEventListener("click", saveCabinet);
+    document.querySelector("#download-reading").addEventListener("click", downloadCurrentReading);
+    document.querySelector("#next-cabinet").addEventListener("click", function () {
+      const current = readCabinetForm();
+      cabinetDraft = { site: current.site, room: current.room, cabinet: "", feed: selectedFeed(), pdu: current.pdu, circuits: "", volts: current.volts, amps: ["", "", ""], note: "" };
+      pendingPhoto = "";
+      stopCamera();
+      renderCabinet();
+    });
+  }
+
+  function gaugeHtml(kilowatts) {
+    const status = E.thresholdFromKilowatts(kilowatts);
+    return '<div class="gauge"><div class="gauge-track" aria-hidden="true"><span class="gauge-safe"></span><span class="gauge-mark"></span></div>' +
+      '<p class="gauge-copy">Power factor 1.0. Breaker total ' + E.formatQty(status.kilowatts, 3) + " kW. The scale is 80% of that total: " +
+      E.formatQty(status.limitKilowatts, 3) + " kW, " + E.formatQty(status.limitKilowattHours, 3) + " kWh each hour.</p></div>";
+  }
+
+  function updateCabinet() {
+    const box = document.querySelector("#readout");
+    if (!box) return;
+    const volts = selectedVolts();
+    const texts = [1, 2, 3].map(function (n) { return document.querySelector("#amp-" + n).value.trim(); });
+    const amps = texts.map(function (text) { return text === "" ? 0 : Number(text); });
+    if (!texts.some(function (text) { return text !== ""; })) {
+      box.innerHTML = '<div class="kicker">' + volts + ' V · PF 1.0</div><p>Type the three breaker amps.</p><p class="meta">Each breaker converts at power factor 1.0. The scale is 80% of the total, applied once.</p>';
+      return;
+    }
+    if (amps.some(function (amp, index) { return texts[index] !== "" && !(amp > 0); })) {
+      box.innerHTML = '<div class="kicker">Result</div><p>Breaker amps need to be greater than 0.</p>';
+      return;
+    }
+    const found = E.computeBreakers(volts, amps, 1);
+    const rows = found.breakers.map(function (breaker) {
+      return "<div>Breaker " + breaker.n + " · " + E.formatQty(breaker.amps, 2) + " A · " + E.formatQty(breaker.kilowatts, 3) + " kW · 80% " + E.formatQty(breaker.continuousKilowatts, 3) + " kW</div>";
+    }).join("");
+    box.innerHTML =
+      '<div class="kicker">80% scale · PF 1.0 · ' + volts + " V</div>" +
+      '<div class="figure">' + E.formatQty(found.continuousKilowatts, 3) + '<span class="unit">kW</span></div>' +
+      '<div class="figure-sub">' + E.formatQty(found.limitKilowattHours, 3) + " kWh each hour</div>" +
+      '<div class="figure-sub">Breaker total at PF 1.0: ' + E.formatQty(found.kilowatts, 3) + " kW · " + E.formatQty(found.kva, 3) + " kVA</div>" +
+      gaugeHtml(found.kilowatts) +
+      '<div class="formula">' + rows + "</div>" +
+      '<p class="meta">' + E.formatQty(found.watts, 2) + " W across " + found.breakers.length + (found.breakers.length === 1 ? " breaker." : " breakers.") + "</p>";
+  }
+
+  function renderConvert() {
+    const saved = defaults();
+    const supply = saved.convertSupply === "three" ? "three" : "single";
+    const volts = String(saved.volts) === "120" ? "120" : "208";
+    app.innerHTML =
+      '<div class="layout">' +
+        '<section class="panel">' +
+          '<h1>Convert</h1>' +
+          '<p class="lead">Power math only. Field voltages are 120 V and 208 V.</p>' +
+          '<div class="fields">' +
+            '<div class="span-2"><div class="chips" role="group" aria-label="Supply">' +
+              '<button type="button" class="chip" data-supply="single" aria-pressed="' + (supply === "single" ? "true" : "false") + '">Single-phase</button>' +
+              '<button type="button" class="chip" data-supply="three" aria-pressed="' + (supply === "three" ? "true" : "false") + '">Three-phase</button>' +
+            "</div></div>" +
+            '<div class="span-2"><div class="chips" role="group" aria-label="Voltage">' +
+              voltChip(120, volts) + voltChip(208, volts) +
+            "</div></div>" +
+            '<label class="field">Volts<input id="volts" inputmode="decimal" value="' + volts + '"></label>' +
+            '<label class="field">Amps<input id="amps" inputmode="decimal"></label>' +
+            '<label class="field">Power factor<input id="pf" inputmode="decimal" value="' + esc(saved.powerFactor || "1") + '"></label>' +
+          "</div>" +
+          '<details class="fold"><summary>Ohm\'s law wheel</summary><p class="meta">Enter any two of volts (E), amps (I), ohms (R), or watts (P).</p>' +
+            '<div class="fields"><label class="field">Volts (E)<input id="ohm-e" inputmode="decimal"></label>' +
+            '<label class="field">Amps (I)<input id="ohm-i" inputmode="decimal"></label>' +
+            '<label class="field">Ohms (R)<input id="ohm-r" inputmode="decimal"></label>' +
+            '<label class="field">Watts (P)<input id="ohm-p" inputmode="decimal"></label></div><p id="ohm-out" class="meta"></p></details>' +
+        "</section>" +
+        '<aside class="readout" id="readout" aria-live="polite"></aside>' +
+      "</div>";
+    bindConvert();
+    updateConvert();
+  }
+
+  function bindConvert() {
+    app.querySelectorAll("[data-supply]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        app.querySelectorAll("[data-supply]").forEach(function (item) {
+          item.setAttribute("aria-pressed", item === button ? "true" : "false");
+        });
+        updateConvert();
+      });
+    });
+    app.querySelectorAll("[data-volt]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        document.querySelector("#volts").value = button.dataset.volt;
+        app.querySelectorAll("[data-volt]").forEach(function (item) {
+          item.setAttribute("aria-pressed", item === button ? "true" : "false");
+        });
+        updateConvert();
+      });
+    });
+    ["#volts", "#amps", "#pf"].forEach(function (selector) {
+      document.querySelector(selector).addEventListener("input", function () {
+        const volts = document.querySelector("#volts").value.trim();
+        app.querySelectorAll("[data-volt]").forEach(function (item) {
+          item.setAttribute("aria-pressed", item.dataset.volt === volts ? "true" : "false");
+        });
+        updateConvert();
+      });
+    });
+    ["#ohm-e", "#ohm-i", "#ohm-r", "#ohm-p"].forEach(function (selector) {
+      document.querySelector(selector).addEventListener("input", updateOhm);
+    });
+  }
+
+  function updateConvert() {
+    const box = document.querySelector("#readout");
+    const supplyButton = app.querySelector("[data-supply][aria-pressed='true']");
+    const supply = supplyButton ? supplyButton.dataset.supply : "single";
+    const voltsText = document.querySelector("#volts").value.trim();
+    const ampsText = document.querySelector("#amps").value.trim();
+    const pfValue = numberOrNull(document.querySelector("#pf").value);
+    const voltsNumber = Number(voltsText);
+    if (voltsText && voltsNumber !== 120 && voltsNumber !== 208) {
+      box.innerHTML = '<div class="kicker">Result</div><p>Field voltage is 120 V or 208 V.</p>';
+      return;
+    }
+    if (!voltsText || !ampsText) {
+      box.innerHTML = '<div class="kicker">Result</div><p>' + (voltsText ? "Type the amps." : "Pick 120 V or 208 V, then type the amps.") + "</p>";
+      return;
+    }
+    const error = E.findingError({
+      supply: supply,
+      volts: numberOrNull(voltsText),
+      amps: numberOrNull(ampsText),
+      powerFactor: pfValue === null ? NaN : pfValue,
+      breakerCount: 1,
+    });
+    if (error) {
+      box.innerHTML = '<div class="kicker">Result</div><p>' + esc(error) + "</p>";
+      return;
+    }
+    const found = E.computeFinding({
+      supply: supply,
+      volts: numberOrNull(voltsText),
+      amps: numberOrNull(ampsText),
+      powerFactor: pfValue === null ? 1 : pfValue,
+      breakerCount: 1,
+    });
+    box.innerHTML =
+      '<div class="kicker">Nameplate</div>' +
+      '<div class="figure">' + E.formatQty(found.kilowatts, 3) + '<span class="unit">kW</span></div>' +
+      (found.kva === null ? "" : '<div class="figure-sub">' + E.formatQty(found.kva, 3) + ' <span class="unit">kVA</span></div>') +
+      '<div class="formula">' + esc(found.formulaKw) + (found.formulaKva ? "\n" + esc(found.formulaKva) : "") + "</div>";
+  }
+
+  function updateOhm() {
+    const solved = E.solveOhm({
+      E: document.querySelector("#ohm-e").value,
+      I: document.querySelector("#ohm-i").value,
+      R: document.querySelector("#ohm-r").value,
+      P: document.querySelector("#ohm-p").value,
+    });
+    const filled = ["#ohm-e", "#ohm-i", "#ohm-r", "#ohm-p"].filter(function (selector) {
+      return String(document.querySelector(selector).value).trim() !== "";
+    }).length;
+    const out = document.querySelector("#ohm-out");
+    if (filled < 2) out.textContent = "Enter two values.";
+    else if (filled > 2) out.textContent = "Clear one field. The wheel uses two values.";
+    else if (!solved) out.textContent = "Use numbers greater than zero.";
+    else out.textContent = "E " + solved.E + " V · I " + solved.I + " A · R " + solved.R + " ohms · P " + solved.P + " W";
+  }
+
+  function shrinkImage(file) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onerror = function () { reject(new Error("Could not read that photo.")); };
+      reader.onload = function () {
+        const image = new Image();
+        image.onload = function () {
+          const scale = Math.min(1, 1200 / Math.max(image.width, image.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(image.width * scale));
+          canvas.height = Math.max(1, Math.round(image.height * scale));
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { reject(new Error("Could not store that photo.")); return; }
+          ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.72));
+        };
+        image.onerror = function () { reject(new Error("Use a JPEG or PNG photo.")); };
+        image.src = String(reader.result);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function stopCamera() {
+    if (scanTimer) {
+      clearInterval(scanTimer);
+      scanTimer = null;
+    }
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(function (track) { track.stop(); });
+      cameraStream = null;
+    }
+    const video = document.querySelector("#camera");
+    if (video) video.srcObject = null;
+  }
+
+  function rememberAmpsBeforeShot() {
+    if (ampsBeforeShot) return;
+    ampsBeforeShot = [1, 2, 3].map(function (n) {
+      const input = document.querySelector("#amp-" + n);
+      return input ? input.value : "";
+    });
+  }
+
+  function resetShot() {
+    stopCamera();
+    const video = document.querySelector("#camera");
+    if (video) video.hidden = true;
+    const snap = document.querySelector("#snap-photo");
+    if (snap) snap.hidden = true;
+    pendingPhoto = "";
+    const preview = document.querySelector("#preview");
+    if (preview) {
+      preview.removeAttribute("src");
+      preview.hidden = true;
+    }
+    const photo = document.querySelector("#photo");
+    const cameraPhoto = document.querySelector("#camera-photo");
+    if (photo) photo.value = "";
+    if (cameraPhoto) cameraPhoto.value = "";
+    const restored = ampsBeforeShot || [1, 2, 3].map(function (n) {
+      const input = document.querySelector("#amp-" + n);
+      return input ? input.value : "";
+    });
+    for (let i = 0; i < 3; i++) {
+      const input = document.querySelector("#amp-" + (i + 1));
+      if (input) input.value = restored[i] || "";
+    }
+    ampsBeforeShot = null;
+    if (cabinetDraft) cabinetDraft.amps = restored.slice();
+    const box = document.querySelector("#cabinet-banner");
+    if (box) box.innerHTML = banner("ok", "Shot cleared. Scan again, or type the breaker amps.");
+    updateCabinet();
+  }
+
+  function drawGlyph(ch, font) {
+    const w = 20;
+    const h = 28;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "#000000";
+    ctx.font = font;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(ch, w / 2, h / 2 + 1);
+    const image = ctx.getImageData(0, 0, w, h);
+    const data = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) {
+      const lum = image.data[i * 4] * 0.3 + image.data[i * 4 + 1] * 0.59 + image.data[i * 4 + 2] * 0.11;
+      data[i] = lum < 170 ? 1 : 0;
+    }
+    return { ch: ch, w: w, h: h, data: data };
+  }
+
+  function fontTemplates() {
+    if (glyphTemplates) return glyphTemplates;
+    const list = [];
+    ["Arial", "Segoe UI", "Tahoma", "Verdana", "Consolas"].forEach(function (font) {
+      "0123456789".split("").forEach(function (ch) {
+        list.push(drawGlyph(ch, "bold 36px " + font));
+      });
+    });
+    glyphTemplates = list;
+    return list;
+  }
+
+  function frameFromVideo(video) {
+    const scale = Math.min(1, 900 / Math.max(video.videoWidth, video.videoHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
+    canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
+    canvas.getContext("2d", { willReadFrequently: true }).drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }
+
+  function showPreview(url) {
+    const preview = document.querySelector("#preview");
+    if (!preview) return;
+    preview.src = url;
+    preview.hidden = false;
+  }
+
+  function applyReadAmps(result) {
+    const box = document.querySelector("#cabinet-banner");
+    if (!result.amps.length) {
+      if (box) box.innerHTML = banner("bad", "No amp numbers showed up in that picture. Type the three breaker amps.");
+      return;
+    }
+    for (let i = 0; i < 3; i++) {
+      const input = document.querySelector("#amp-" + (i + 1));
+      if (input) input.value = result.amps[i] ? String(result.amps[i]) : "";
+    }
+    updateCabinet();
+    const volts = selectedVolts();
+    const found = E.computeBreakers(volts, result.amps, 1);
+    const list = result.amps.map(function (amp) { return amp + " A"; }).join(", ");
+    if (box) box.innerHTML = banner("ok", "Read " + list + ". Power factor 1.0 gives " + E.formatQty(found.kilowatts, 3) + " kW. The 80% scale is " + E.formatQty(found.continuousKilowatts, 3) + " kW.");
+  }
+
+  function recognizeCanvas(canvas) {
+    const box = document.querySelector("#cabinet-banner");
+    if (box) box.innerHTML = banner("ok", "Reading the amp numbers from this photo.");
+    const local = function () {
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      applyReadAmps(E.readAmps(ctx.getImageData(0, 0, canvas.width, canvas.height), fontTemplates()));
+    };
+    if (typeof TextDetector === "function") {
+      try {
+        const detector = new TextDetector();
+        detector.detect(canvas).then(function (blocks) {
+          const text = blocks.map(function (block) { return block.rawValue || ""; }).join(" ");
+          const amps = E.ampsFromText(text);
+          if (amps.length) applyReadAmps({ amps: amps, confidence: 1 });
+          else local();
+        }).catch(local);
+        return;
+      } catch (error) { /* the on-page reader still runs */ }
+    }
+    local();
+  }
+
+  function recognizeUrl(url) {
+    const image = new Image();
+    image.onload = function () {
+      const scale = Math.min(1, 900 / Math.max(image.width, image.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      recognizeCanvas(canvas);
+    };
+    image.src = url;
+  }
+
+  function readPhotoFile(file) {
+    rememberAmpsBeforeShot();
+    const box = document.querySelector("#cabinet-banner");
+    if (box) box.innerHTML = banner("ok", "Reading the amp numbers from this photo.");
+    shrinkImage(file).then(function (url) {
+      pendingPhoto = url;
+      showPreview(url);
+      recognizeUrl(url);
+    }).catch(function (error) {
+      const box = document.querySelector("#cabinet-banner");
+      if (box) box.innerHTML = banner("bad", error.message);
+    });
+  }
+
+  function startLiveScan() {
+    const box = document.querySelector("#cabinet-banner");
+    const video = document.querySelector("#camera");
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      if (box) box.innerHTML = banner("bad", "Use Take photo. That button opens the camera on a phone.");
+      return;
+    }
+    stopCamera();
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false }).then(function (stream) {
+      cameraStream = stream;
+      if (!video) return;
+      video.srcObject = stream;
+      video.hidden = false;
+      const snap = document.querySelector("#snap-photo");
+      if (snap) snap.hidden = false;
+      video.play();
+      let last = "";
+      let stable = 0;
+      scanTimer = setInterval(function () {
+        if (!video.videoWidth) return;
+        const canvas = frameFromVideo(video);
+        const result = E.readAmps(canvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height), fontTemplates());
+        const key = result.amps.join(",");
+        if (result.amps.length && key === last) stable += 1;
+        else stable = 0;
+        last = key;
+        if (stable >= 1) {
+          rememberAmpsBeforeShot();
+          pendingPhoto = canvas.toDataURL("image/jpeg", 0.72);
+          showPreview(pendingPhoto);
+          applyReadAmps(result);
+          stopCamera();
+          video.hidden = true;
+          if (snap) snap.hidden = true;
+        }
+      }, 700);
+    }).catch(function () {
+      if (box) box.innerHTML = banner("bad", "Use Take photo. That button opens the camera on a phone.");
+    });
+  }
+
+  function currentReadingDraft() {
+    const form = readCabinetForm();
+    const site = E.cleanName(form.site);
+    const room = E.cleanName(form.room);
+    const cabinet = E.cleanName(form.cabinet);
+    const rpdu = E.cleanName(form.rpdu);
+    const amps = form.amps.map(function (text) {
+      const trimmed = String(text).trim();
+      return trimmed === "" ? 0 : Number(trimmed);
+    });
+    return {
+      site: site,
+      room: room,
+      cabinet: cabinet,
+      rpduName: rpdu,
+      pdu: E.cleanName(form.pdu),
+      circuits: E.cleanName(form.circuits),
+      volts: form.volts,
+      amps: amps,
+      notes: E.cleanName(form.note),
+      recordedAt: new Date().toISOString(),
+      photoDataUrl: pendingPhoto,
+    };
+  }
+
+  function downloadCurrentReading() {
+    const box = document.querySelector("#cabinet-banner");
+    const draft = currentReadingDraft();
+    if (!draft.site || !draft.room || (!draft.cabinet && !draft.rpduName)) {
+      if (box) box.innerHTML = banner("bad", "Enter the site, the room, and a cabinet or rPDU name before downloading the file.");
+      return;
+    }
+    if (!draft.amps.some(function (amp) { return amp > 0; })) {
+      if (box) box.innerHTML = banner("bad", "Enter at least one breaker amp before downloading the file.");
+      return;
+    }
+    const packet = E.readingFile([draft]);
+    const name = (draft.cabinet || draft.rpduName || "reading").replace(/[^\w.-]+/g, "-");
+    download(name + "-reading.json", JSON.stringify(packet, null, 2), "application/json");
+    if (box) box.innerHTML = banner("ok", "Reading file downloaded. Email that file to the work PC, then use Import there.");
+  }
+
+  function saveCabinet() {
+    const form = readCabinetForm();
+    const box = document.querySelector("#cabinet-banner");
+    const site = E.cleanName(form.site);
+    const room = E.cleanName(form.room);
+    const cabinet = E.cleanName(form.cabinet);
+    if (!site) { box.innerHTML = banner("bad", "Enter the site ID, such as USNY01."); return; }
+    if (!room) { box.innerHTML = banner("bad", "Enter the room, such as East Data Center."); return; }
+    if (!cabinet) { box.innerHTML = banner("bad", "Enter the cabinet, such as DU06."); return; }
+    const rpdu = E.rpduNameFor(cabinet, selectedFeed());
+    const amps = form.amps.map(function (text) {
+      const trimmed = String(text).trim();
+      return trimmed === "" ? 0 : Number(trimmed);
+    });
+    if (amps.some(function (amp, index) { return String(form.amps[index]).trim() !== "" && !(amp > 0); })) {
+      box.innerHTML = banner("bad", "Breaker amps need to be greater than 0.");
+      return;
+    }
+    const found = E.computeBreakers(form.volts, amps, 1);
+    if (!found.breakers.length) {
+      box.innerHTML = banner("bad", "Enter at least one breaker amp.");
+      return;
+    }
+    state.readings.push({
+      id: E.makeId(),
+      recordedAt: new Date().toISOString(),
+      site: site,
+      room: room,
+      cabinet: cabinet,
+      rpduName: rpdu,
+      pdu: E.cleanName(form.pdu),
+      circuits: E.cleanName(form.circuits),
+      volts: form.volts,
+      breakers: found.breakers,
+      watts: found.watts,
+      kilowatts: found.kilowatts,
+      kva: found.kva,
+      notes: E.cleanName(form.note),
+      photoDataUrl: pendingPhoto,
+    });
+    if (cabinet) {
+      const existing = state.assets.find(function (asset) {
+        return E.keyOf(asset.assetName) === E.keyOf(cabinet) && E.keyOf(asset.site || "") === E.keyOf(site) && E.keyOf(asset.room || "") === E.keyOf(room);
+      });
+      if (!existing) {
+        state.assets.push({
+          id: E.makeId(),
+          assetName: cabinet,
+          assetNumber: "",
+          assetType: "Cabinet",
+          materialName: "",
+          operationalStatus: "",
+          room: room,
+          cabinet: cabinet,
+          site: site,
+          kind: "other",
+          notes: "",
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    }
+    if (rpdu) {
+      const existingRpdu = state.assets.find(function (asset) {
+        return E.keyOf(asset.assetName) === E.keyOf(rpdu) && E.keyOf(asset.site || "") === E.keyOf(site) && E.keyOf(asset.room || "") === E.keyOf(room);
+      });
+      if (!existingRpdu) {
+        state.assets.push({
+          id: E.makeId(),
+          assetName: rpdu,
+          assetNumber: "",
+          assetType: "Powerstrip",
+          materialName: "",
+          operationalStatus: "",
+          room: room,
+          cabinet: cabinet,
+          site: site,
+          kind: "rpdu",
+          notes: "",
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    }
+    try {
+      const saved = defaults();
+      saved.site = site;
+      saved.room = room;
+      saved.volts = String(form.volts);
+      localStorage.setItem("rpdu-power-v1-defaults", JSON.stringify(saved));
+    } catch (ignored) { /* the reading itself is still stored */ }
+    cabinetDraft = { site: site, room: room, cabinet: cabinet, feed: selectedFeed(), rpdu: rpdu, pdu: E.cleanName(form.pdu), circuits: E.cleanName(form.circuits), volts: form.volts, amps: form.amps, note: form.note };
+    box.innerHTML = banner("ok", "Saved " + E.formatQty(found.continuousKilowatts, 3) + " kW on the 80% scale for " + rpdu + " in " + room + " at " + site + ". Breaker total at PF 1.0 is " + E.formatQty(found.kilowatts, 3) + " kW.");
+    persist();
+  }
+
+  function renderLibrary() {
+    app.innerHTML =
+      '<section>' +
+        '<h1>Library</h1>' +
+        '<p class="lead">Cabinets are filed under the site, then the room. Each save stays in the list, including a second save of the same rPDU. Delete removes that one reading.</p>' +
+        '<div class="toolbar">' +
+          '<input class="search" id="library-search" placeholder="Search site, room, cabinet, or rPDU" value="' + esc(libraryQuery) + '">' +
+        "</div>" +
+        '<div id="list"></div>' +
+      "</section>";
+    document.querySelector("#library-search").addEventListener("input", function (event) {
+      libraryQuery = event.target.value;
+      renderList();
+    });
+    document.querySelector("#list").addEventListener("click", onLibraryClick);
+    renderList();
+  }
+
+  function renderList() {
+    const tree = E.placeLibrary(state, libraryQuery);
+    const list = document.querySelector("#list");
+    if (!list) return;
+    if (!tree.length) {
+      list.innerHTML = '<div class="empty panel">' + (libraryQuery ? "Nothing matches that search." : "No cabinet readings yet. Save one on the Cabinet screen, or import a sheet under a site and room.") + "</div>";
+      return;
+    }
+    list.innerHTML = tree.map(function (site) {
+      return '<section class="group"><div class="group-title">' + esc(site.site) + "</div>" +
+        site.rooms.map(function (room) {
+          return '<div class="meta" style="margin-top:10px">' + esc(room.room) + "</div>" +
+            room.cabinets.map(function (item) {
+              const amps = (item.breakers || []).map(function (breaker) { return E.formatQty(breaker.amps, 2) + " A"; }).join(" · ");
+              const scale = item.kilowatts === null || item.kilowatts === undefined ? null : E.thresholdFromKilowatts(item.kilowatts);
+              const kw = scale ? E.formatQty(scale.limitKilowatts, 3) + " kW" : "No reading";
+              const gauge = scale ? gaugeHtml(item.kilowatts) : "";
+              const placeBits = [amps, item.volts ? item.volts + " V" : "", item.pdu || "", item.circuits || "", item.recordedAt ? when(item.recordedAt) : ""].filter(Boolean);
+              const deleteLabel = pendingDeleteId === item.id ? "Confirm delete" : "Delete";
+              return '<article class="item"><div class="library-row"><button type="button" class="item-toggle" data-action="open-cabinet" data-id="' + esc(item.id || "") + '" data-site="' + esc(item.site || site.site) + '" data-room="' + esc(item.room || room.room) + '" data-cabinet="' + esc(item.cabinet || "") + '" data-rpdu="' + esc(item.rpduName || "") + '">' +
+                '<span><span class="item-name">' + esc(item.label || item.cabinet) + '</span><span class="meta" style="display:block">' + esc(placeBits.join(" · ")) + "</span>" +
+                gauge +
+                "</span>" +
+                '<span class="metric"><strong>' + esc(kw) + '</strong><span class="meta">' + (scale ? "80% of " + E.formatQty(item.kilowatts, 3) + " kW at PF 1.0" : "") + "</span></span></button>" +
+                (item.id ? '<button type="button" class="btn btn-danger btn-small" data-action="delete-reading" data-id="' + esc(item.id) + '">' + deleteLabel + "</button>" : "") +
+                "</div></article>";
+            }).join("");
+        }).join("") +
+        "</section>";
+    }).join("");
+  }
+
+  function itemHtml(row) {
+    const asset = row.asset;
+    const open = E.keyOf(openName) === E.keyOf(asset.assetName);
+    const latest = row.latest ? E.formatQty(row.latest.kilowatts, 3) + " kW" : "No reading";
+    const place = [row.cabinet ? (row.cabinetInferred ? row.cabinet + " (from devices)" : row.cabinet) : "", row.roomPdus.join(", ")].filter(Boolean).join(" · ");
+    const readings = state.readings.filter(function (reading) { return E.keyOf(reading.rpduName) === E.keyOf(asset.assetName); })
+      .sort(function (a, b) { return a.recordedAt < b.recordedAt ? 1 : -1; });
+    return '<article class="item"><button type="button" class="item-toggle" data-action="toggle" data-name="' + esc(asset.assetName) + '">' +
+      '<span><span class="item-name">' + esc(asset.assetName) + '</span><span class="meta" style="display:block">' + esc(place || "No cabinet or room PDU yet") + "</span></span>" +
+      '<span class="metric"><strong>' + esc(latest) + "</strong><span class=\"meta\">" + esc(countLabel(row.deviceCount, "device")) + "</span></span></button>" +
+      (open ? detailHtml(asset, row, readings) : "") +
+      "</article>";
+  }
+
+  function detailHtml(asset, row, readings) {
+    const kva = row.connectedKva === null ? "" : '<p class="meta">BDM connection max kVA on the devices: ' + E.formatQty(row.connectedKva, 3) + "</p>";
+    return '<div class="detail"><div class="fields">' +
+      '<label class="field">Cabinet<input name="cabinet" value="' + esc(asset.cabinet) + '"></label>' +
+      '<label class="field">Room<input name="room" value="' + esc(asset.room) + '"></label>' +
+      '<label class="field span-2">Notes<input name="notes" value="' + esc(asset.notes) + '"></label>' +
+      "</div><div class=\"actions\">" +
+      '<button type="button" class="btn btn-primary btn-small" data-action="save-place" data-name="' + esc(asset.assetName) + '">Save place</button>' +
+      '<button type="button" class="btn btn-ghost btn-small" data-action="powerdown" data-name="' + esc(asset.assetName) + '">Devices on this rPDU</button>' +
+      "</div>" + kva +
+      (readings.length ? '<div class="table-wrap"><table class="data"><thead><tr><th>When</th><th>Breaker</th><th>kW</th><th>kVA</th><th></th></tr></thead><tbody>' +
+        readings.map(function (reading) {
+          const photo = safeImage(reading.photoDataUrl);
+          return "<tr><td>" + esc(when(reading.recordedAt)) + "</td><td>" + esc(reading.volts + " V, " + reading.amps + " A " + E.supplyLabel(reading.supply)) +
+            (photo ? '<br><img class="preview" alt="Breaker photo" src="' + photo + '">' : "") +
+            "</td><td>" + E.formatQty(reading.kilowatts, 3) + "</td><td>" + (reading.kva === null ? "—" : E.formatQty(reading.kva, 3)) +
+            '</td><td><button type="button" class="btn btn-ghost btn-small" data-action="delete-reading" data-id="' + esc(reading.id) + '">Delete</button></td></tr>';
+        }).join("") + "</tbody></table></div>" : '<p class="meta">No breaker reading saved yet.</p>') +
+      "</div>";
+  }
+
+  function onLibraryClick(event) {
+    const target = event.target.closest("[data-action]");
+    if (!target) return;
+    const action = target.dataset.action;
+    if (action === "open-cabinet") {
+      pendingDeleteId = "";
+      const reading = state.readings.find(function (item) { return item.id === target.dataset.id; });
+      const source = reading || {
+        site: target.dataset.site,
+        room: target.dataset.room,
+        cabinet: target.dataset.cabinet,
+        rpduName: target.dataset.rpdu,
+        volts: 208,
+        breakers: [],
+        notes: "",
+        photoDataUrl: "",
+      };
+      const amps = ["", "", ""];
+      (source.breakers || []).forEach(function (breaker) {
+        if (breaker.n >= 1 && breaker.n <= 3) amps[breaker.n - 1] = String(breaker.amps);
+      });
+      cabinetDraft = {
+        site: source.site || "",
+        room: source.room || "",
+        cabinet: source.cabinet || "",
+        rpdu: source.rpduName || "",
+        feed: /-B$/i.test(source.rpduName || "") ? "B" : "A",
+        volts: source.volts === 120 ? 120 : 208,
+        amps: amps,
+        note: source.notes || "",
+        pdu: source.pdu || "",
+        circuits: source.circuits || "",
+      };
+      pendingPhoto = source.photoDataUrl || "";
+      if ((location.hash || "").replace("#", "") === "cabinet") show("cabinet");
+      else location.hash = "#cabinet";
+      return;
+    }
+    if (action === "toggle") {
+      openName = E.keyOf(openName) === E.keyOf(target.dataset.name) ? "" : target.dataset.name;
+      renderList();
+    } else if (action === "save-place") {
+      const asset = E.assetByName(state, target.dataset.name);
+      const article = target.closest("article");
+      if (!asset || !article) return;
+      asset.cabinet = E.cleanName(article.querySelector("[name=cabinet]").value);
+      asset.room = E.cleanName(article.querySelector("[name=room]").value);
+      asset.notes = E.cleanName(article.querySelector("[name=notes]").value);
+      asset.updatedAt = new Date().toISOString();
+      rememberRoom(asset.room);
+      persist();
+      renderList();
+    } else if (action === "powerdown") {
+      queuedPick = target.dataset.name;
+      location.hash = "#powerdown";
+    } else if (action === "delete-reading") {
+      if (pendingDeleteId !== target.dataset.id) {
+        pendingDeleteId = target.dataset.id;
+        renderList();
+        return;
+      }
+      const reading = state.readings.find(function (item) { return item.id === target.dataset.id; });
+      state.readings = state.readings.filter(function (item) { return item.id !== target.dataset.id; });
+      if (reading) {
+        const samePlace = function (asset) {
+          return E.keyOf(asset.site || "") === E.keyOf(reading.site || "") && E.keyOf(asset.room || "") === E.keyOf(reading.room || "");
+        };
+        const rpduLeft = state.readings.some(function (item) { return E.keyOf(item.rpduName) === E.keyOf(reading.rpduName); });
+        const cabinetLeft = state.readings.some(function (item) {
+          return E.keyOf(item.cabinet) === E.keyOf(reading.cabinet) && E.keyOf(item.site || "") === E.keyOf(reading.site || "") && E.keyOf(item.room || "") === E.keyOf(reading.room || "");
+        });
+        state.assets = state.assets.filter(function (asset) {
+          if (reading.rpduName && !rpduLeft && E.keyOf(asset.assetName) === E.keyOf(reading.rpduName) && samePlace(asset)) return false;
+          if (reading.cabinet && !cabinetLeft && E.keyOf(asset.assetName) === E.keyOf(reading.cabinet) && samePlace(asset)) return false;
+          return true;
+        });
+      }
+      pendingDeleteId = "";
+      persist();
+      renderList();
+    }
+  }
+
+  function rememberRoom(name) {
+    if (!name) return;
+    if (state.rooms.some(function (room) { return E.keyOf(room.name) === E.keyOf(name); })) return;
+    state.rooms.push({ name: name, imageDataUrl: "" });
+  }
+
+  function onLibraryChange(event) {
+    const input = event.target;
+    if (input.dataset.action !== "room-image" || !input.files || !input.files[0]) return;
+    const roomName = input.dataset.room;
+    shrinkImage(input.files[0]).then(function (url) {
+      let room = roomFor(roomName);
+      if (!room) {
+        room = { name: roomName, imageDataUrl: "" };
+        state.rooms.push(room);
+      }
+      room.imageDataUrl = url;
+      persist();
+      renderList();
+    }).catch(function (error) {
+      window.alert(error.message);
+    });
+  }
+
+  function renderPowerdown() {
+    app.innerHTML =
+      '<section class="panel">' +
+        '<h1>Powerdown</h1>' +
+        '<p class="lead">Pick an rPDU or a room PDU. The list is every device downstream of it. A device with no other feed drops if this source is opened. A device with another feed stays up on that cord.</p>' +
+        '<label class="field">rPDU or room PDU<input id="pick" autocomplete="off" placeholder="Start typing a name"></label>' +
+        '<div class="matches" id="matches"></div>' +
+        '<div id="report"></div>' +
+      "</section>";
+    const pick = document.querySelector("#pick");
+    pick.addEventListener("input", function () {
+      const matches = E.searchAssets(state, pick.value, ["rpdu", "pdu", "device"]);
+      document.querySelector("#matches").innerHTML = matches.map(function (asset) {
+        return '<button type="button" class="btn btn-ghost" data-pick="' + esc(asset.assetName) + '">' + esc(asset.assetName) + " · " + esc(E.kindLabel(asset.kind)) + "</button>";
+      }).join("");
+    });
+    document.querySelector("#matches").addEventListener("click", function (event) {
+      const button = event.target.closest("[data-pick]");
+      if (!button) return;
+      pick.value = button.dataset.pick;
+      document.querySelector("#matches").innerHTML = "";
+      renderReport(button.dataset.pick);
+    });
+    document.querySelector("#report").addEventListener("click", function (event) {
+      const button = event.target.closest("[data-action]");
+      if (!button) return;
+      if (button.dataset.action === "download-impact") {
+        const report = E.impact(state, pick.value);
+        if (!report) return;
+        download("powerdown-" + report.name.replace(/[^\w.-]+/g, "_") + ".csv", E.impactCsv(report), "text/csv;charset=utf-8");
+      } else if (button.dataset.action === "print-impact") window.print();
+      else if (button.dataset.action === "open-feed") {
+        pick.value = button.dataset.name;
+        renderReport(button.dataset.name);
+      }
+    });
+    if (queuedPick) {
+      pick.value = queuedPick;
+      renderReport(queuedPick);
+      queuedPick = "";
+    }
+  }
+
+  function renderReport(name) {
+    const report = E.impact(state, name);
+    const node = document.querySelector("#report");
+    if (!report) { node.innerHTML = ""; return; }
+    const latest = E.latestReading(state, report.name);
+    const upstream = report.upstream.map(function (row) {
+      return esc(E.kindLabel(row.kind) + " " + row.name);
+    }).join(" ← ");
+    const equipment = report.equipment.length
+      ? '<h2>Power equipment downstream</h2><div class="matches">' + report.equipment.map(function (row) {
+          return '<button type="button" class="btn btn-ghost" data-action="open-feed" data-name="' + esc(row.name) + '">' + esc(row.name) + " · " + esc(E.kindLabel(row.kind)) + "</button>";
+        }).join("") + "</div>"
+      : "";
+    node.innerHTML =
+      "<h2>" + esc(report.name) + "</h2>" +
+      (upstream ? '<p class="meta">Upstream: ' + upstream + "</p>" : "") +
+      (latest ? '<p class="meta">Latest breaker reading: ' + E.formatQty(latest.kilowatts, 3) + " kW · " + esc(latest.volts + " V, " + latest.amps + " A") + "</p>" : "") +
+      '<p><strong>' + report.devices.length + "</strong> devices on this path. <strong>" + report.singleCord + "</strong> have no other feed.</p>" +
+      '<div class="actions"><button type="button" class="btn btn-primary" data-action="download-impact">Download impact list</button>' +
+      '<button type="button" class="btn btn-ghost" data-action="print-impact">Print list</button></div>' +
+      equipment +
+      (report.devices.length ? deviceTable(report.devices) : '<p class="meta">No downstream devices are in the library for that name.</p>');
+  }
+
+  function deviceTable(devices) {
+    return '<div class="table-wrap"><table class="data"><thead><tr><th>Device</th><th>Type</th><th>Cabinet</th><th>Fed by</th><th>Outlet</th><th>Other feed</th><th>Max kVA</th></tr></thead><tbody>' +
+      devices.map(function (row) {
+        const other = row.otherFeeds.length
+          ? row.otherFeeds.map(function (feed) { return feed.supplierName + (feed.outlet ? " outlet " + feed.outlet : ""); }).join(", ")
+          : (row.samePathFeeds && row.samePathFeeds.length
+            ? "Also on this path: " + row.samePathFeeds.map(function (feed) { return feed.supplierName; }).join(", ")
+            : "None");
+        return '<tr class="' + (row.singleCord ? "single" : "") + '"><td>' + esc(row.name) + "</td><td>" + esc(row.assetType) + "</td><td>" + esc(row.cabinet) +
+          "</td><td>" + esc(row.via) + "</td><td>" + esc(row.outlet || row.plugPosition) + "</td><td>" + esc(other) + "</td><td>" +
+          (row.maxKva === null || row.maxKva === undefined ? "" : E.formatQty(row.maxKva, 3)) + "</td></tr>";
+      }).join("") + "</tbody></table></div>";
+  }
+
+  function renderImport() {
+    const counts = E.counts(state);
+    const saved = defaults();
+    const site = importPlace.site || saved.site || "";
+    const room = importPlace.room || saved.room || "";
+    app.innerHTML =
+      '<section class="paste">' +
+        '<h1>Import</h1>' +
+        '<p class="lead">Enter the site, then the room. Paste a cabinet sheet or a Power BDM sheet and it is filed there. A reading file from the phone can be imported below. The file already carries its site, room, cabinet, and amps.</p>' +
+        '<div class="fields">' +
+          '<label class="field">Site ID<input id="import-site" list="import-site-list" autocomplete="off" spellcheck="false" placeholder="USNY01" value="' + esc(site) + '"></label>' +
+          '<label class="field">Room<input id="import-room" list="import-room-list" autocomplete="off" spellcheck="false" placeholder="East Data Center" value="' + esc(room) + '"></label>' +
+        "</div>" +
+        optionList("import-site-list", namesFor("site")) +
+        optionList("import-room-list", namesFor("room")) +
+        '<p class="meta">Cabinet sheet columns: Cabinet, Breaker 1, Breaker 2, Breaker 3, Volts. Volts can be 120 or 208. For BDM, paste Asset to Asset, then Breaker to Asset.</p>' +
+        '<div class="stats"><span class="stat">' + counts.rpdu + ' rPDUs</span><span class="stat">' + counts.pdu + ' room PDUs</span><span class="stat">' + counts.device + ' devices</span><span class="stat">' + state.readings.length + " readings</span></div>" +
+        '<div id="import-banner"></div>' +
+        '<textarea id="sheet" placeholder="Paste the sheet here"></textarea>' +
+        '<div class="actions"><button type="button" class="btn btn-primary" id="add-sheet">Add this sheet</button>' +
+        '<label class="btn btn-ghost">CSV file<input id="csv-file" type="file" accept=".csv,text/csv" hidden></label>' +
+        '<label class="btn btn-ghost">Reading file<input id="reading-file" type="file" accept="application/json,.json" hidden></label></div>' +
+        '<h2>Keep a copy</h2>' +
+        '<p class="meta">The library stays in this browser. On a phone, download a reading file and email it to the work PC. Open rPDU Power v1.html there and import the file. A full backup is the whole library.</p>' +
+        '<div class="actions"><button type="button" class="btn btn-ghost" id="backup">Download backup</button>' +
+        '<button type="button" class="btn btn-ghost" id="download-all-readings">Download all readings</button>' +
+        '<label class="btn btn-ghost">Restore backup<input id="restore" type="file" accept="application/json,.json" hidden></label>' +
+        '<button type="button" class="btn btn-danger" id="erase">' + (eraseArmed ? "Delete the library in this browser" : "Erase this browser's copy") + "</button></div>" +
+        (eraseArmed ? '<p class="meta">The Excel workbook and any emailed reading files are left as they are. This only clears the copy in this browser.</p>' : "") +
+      "</section>";
+    document.querySelector("#add-sheet").addEventListener("click", function () {
+      takeSheet(document.querySelector("#sheet").value);
+    });
+    document.querySelector("#csv-file").addEventListener("change", function (event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function () { takeSheet(String(reader.result)); };
+      reader.readAsText(file);
+    });
+    document.querySelector("#reading-file").addEventListener("change", function (event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function () { takeReadingFile(String(reader.result)); };
+      reader.readAsText(file);
+    });
+    document.querySelector("#download-all-readings").addEventListener("click", function () {
+      const packet = E.readingFile(state.readings);
+      download("rpdu-power-readings.json", JSON.stringify(packet, null, 2), "application/json");
+      document.querySelector("#import-banner").innerHTML = banner("ok", "Reading file downloaded. Email it, then import it on the work PC.");
+    });
+        '<label class="btn btn-ghost">Restore backup<input id="restore" type="file" accept="application/json,.json" hidden></label>' +
+        '<button type="button" class="btn btn-danger" id="erase">' + (eraseArmed ? "Delete the library in this browser" : "Erase this browser's copy") + "</button></div>" +
+        (eraseArmed ? '<p class="meta">The Excel workbook is left as it is. This only clears the copy in this browser.</p>' : "") +
+      "</section>";
+    document.querySelector("#add-sheet").addEventListener("click", function () {
+      takeSheet(document.querySelector("#sheet").value);
+    });
+    document.querySelector("#csv-file").addEventListener("change", function (event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function () { takeSheet(String(reader.result)); };
+      reader.readAsText(file);
+    });
+    document.querySelector("#backup").addEventListener("click", function () {
+      download("rpdu-power-v1-backup.json", JSON.stringify({
+        app: version.DISPLAY_NAME,
+        version: version.SEMVER,
+        exportedAt: new Date().toISOString(),
+        assets: state.assets,
+        links: state.links,
+        readings: state.readings,
+        rooms: state.rooms,
+      }, null, 2), "application/json");
+    });
+    document.querySelector("#restore").addEventListener("change", function (event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function () {
+        try {
+          const raw = JSON.parse(String(reader.result));
+          state = hydrate(raw);
+          eraseArmed = false;
+          persist();
+          renderImport();
+          document.querySelector("#import-banner").innerHTML = banner("ok", "Backup restored.");
+        } catch (error) {
+          document.querySelector("#import-banner").innerHTML = banner("bad", "That file is not an rPDU Power backup.");
+        }
+      };
+      reader.readAsText(file);
+    });
+    document.querySelector("#erase").addEventListener("click", function () {
+      if (!eraseArmed) {
+        eraseArmed = true;
+        renderImport();
+        return;
+      }
+      state = E.emptyState();
+      eraseArmed = false;
+      persist();
+      renderImport();
+    });
+  }
+
+  function takeSheet(text) {
+    const site = E.cleanName(document.querySelector("#import-site").value);
+    const room = E.cleanName(document.querySelector("#import-room").value);
+    importPlace = { site: site, room: room };
+    const box = document.querySelector("#import-banner");
+    if (!site || !room) {
+      box.innerHTML = banner("bad", "Enter the site ID, then the room. The sheet is filed under that room.");
+      return;
+    }
+    const result = E.applyImport(state, text, { site: site, room: room });
+    if (!result.summary.ok) {
+      box.innerHTML = banner("bad", result.summary.message);
+      return;
+    }
+    state = result.state;
+    persist();
+    try {
+      const saved = defaults();
+      saved.site = site;
+      saved.room = room;
+      localStorage.setItem("rpdu-power-v1-defaults", JSON.stringify(saved));
+    } catch (ignored) { /* the sheet itself is stored */ }
+    const summary = result.summary;
+    const line = summary.message || (summary.sheet === "links"
+      ? "Added " + summary.linksAdded + " connections under " + site + " / " + room + "."
+      : "Filed under " + site + " / " + room + ".");
+    renderImport();
+    const fresh = document.querySelector("#import-banner");
+    if (fresh) fresh.innerHTML = banner("ok", line);
+  }
+
+  function takeReadingFile(text) {
+    const siteField = document.querySelector("#import-site");
+    const roomField = document.querySelector("#import-room");
+    const site = siteField ? E.cleanName(siteField.value) : "";
+    const room = roomField ? E.cleanName(roomField.value) : "";
+    importPlace = { site: site, room: room };
+    const result = E.applyReadingFile(state, text, { site: site, room: room });
+    const box = document.querySelector("#import-banner");
+    if (!result.summary.ok) {
+      if (box) box.innerHTML = banner("bad", result.summary.message);
+      return;
+    }
+    state = result.state;
+    persist();
+    renderImport();
+    const fresh = document.querySelector("#import-banner");
+    if (fresh) fresh.innerHTML = banner("ok", result.summary.message);
+  }
+
+  window.addEventListener("hashchange", function () { show(currentPage()); });
+  loadState().then(function (raw) {
+    state = hydrate(raw);
+    show(currentPage());
+  });
+})();
+
+</script>
+</body>
+</html>

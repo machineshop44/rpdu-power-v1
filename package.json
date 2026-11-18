@@ -1,0 +1,10 @@
+{
+  "name": "rpdu-power",
+  "version": "1.3.0",
+  "private": true,
+  "description": "rPDU Power v1. Field power findings, cabinet and room-PDU library, and powerdown device lists from an Nlyte Power BDM export.",
+  "scripts": {
+    "test": "node --test test/engine.test.js",
+    "pack": "node tools/pack.mjs"
+  }
+}
